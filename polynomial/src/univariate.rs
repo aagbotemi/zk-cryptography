@@ -1,13 +1,15 @@
 use ark_ff::PrimeField;
+use num_bigint::BigUint;
 use std::{
+    collections::HashMap,
     fmt::{Display, Formatter, Result},
-    ops::{Add, Mul},
+    ops::{Add, Div, Mul, Sub},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Monomial<F: PrimeField> {
-    coeff: F,
-    pow: F,
+    pub coeff: F,
+    pub pow: F,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -15,13 +17,13 @@ pub struct UnivariatePolynomial<F>
 where
     F: PrimeField,
 {
-    monomial: Vec<Monomial<F>>,
+    pub monomial: Vec<Monomial<F>>,
 }
 
 trait UnivariatePolynomialTrait<F: PrimeField>: Clone {
     fn new(data: Vec<F>) -> Self;
     fn evaluate(&self, point: F) -> F;
-    fn interpolation(point_x: Vec<F>, point_y: Vec<F>) -> Self;
+    fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F>;
     fn degree(&self) -> F;
 }
 
@@ -61,63 +63,47 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
         point_evaluation
     }
 
-    fn interpolation(point_x: Vec<F>, point_y: Vec<F>) -> Self {
-        // point_x=[2, 1, 0, 4]
-        // point_y=[2, 4, 1, 8]
-        //
-        //     (x-x1)(x-x2)(x-x3)
-        // y * ------------------
-        //     (x0-x1)(x0-x2)(x0-x3)
-        //
-        //      (x-(1))(x-0)(x-4)             (x-1)(x-0)(x-4)
-        // 2 * ---------------------  =  2 * --------------------------
-        //      (2-1)(2-0)(2-4)                 1.2.-2
-        //                                     (x^2-x)(x-4)
-        //                             =  -2 * ------------
-        //                                         -4
-        //                                     x^3-5x^2+4x
-        //                             =  -2 * -----------
-        //                                         -4
+    fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F> {
+        let mut result_polynomial: UnivariatePolynomial<F> =
+            UnivariatePolynomial { monomial: vec![] };
+        let zero = F::zero();
+        let one = F::one();
+        let mut coefficients = vec![zero; points.len()];
+        let mut temp_polynomial = Vec::with_capacity(points.len());
 
-        // [(2, 2), (1,4), (0,1), (4,8)]
-        let mut lagrange_poly: UnivariatePolynomial<F> = UnivariatePolynomial { monomial: vec![] };
+        for (i, (x1, y1)) in points.iter().enumerate() {
+            temp_polynomial.clear();
+            temp_polynomial.push(one);
+            let mut denominator = one;
 
-        for (i, &xi) in point_x.iter().enumerate() {
-            let mut poly: UnivariatePolynomial<F> = UnivariatePolynomial {
-                monomial: vec![Monomial {
-                    coeff: F::from(1_u8),
-                    pow: F::from(0_u8),
-                }],
-            };
-
-            for (j, &xj) in point_x.iter().enumerate() {
+            for (j, (x2, _)) in points.iter().enumerate() {
                 if i != j {
-                    // Construct (x - xj)
-                    let temp_poly: UnivariatePolynomial<F> = UnivariatePolynomial {
-                        monomial: vec![
-                            Monomial {
-                                coeff: -xj,
-                                pow: F::from(0_u8),
-                            },
-                            Monomial {
-                                coeff: F::from(1_u8),
-                                pow: F::from(1_u8),
-                            },
-                        ],
-                    };
-
-                    poly = poly * temp_poly;
+                    temp_polynomial.push(zero);
+                    for k in (1..temp_polynomial.len()).rev() {
+                        let xyz = x2.mul(temp_polynomial[k - 1]);
+                        temp_polynomial[k] -= xyz;
+                    }
+                    denominator *= x1.sub(x2);
                 }
             }
 
-            for monomial in &mut poly.monomial {
-                monomial.coeff *= point_y[i];
-            }
+            let multiplier = y1.div(denominator);
 
-            lagrange_poly = lagrange_poly + poly;
+            for (result_coefficient, temp_coefficient) in
+                coefficients.iter_mut().zip(temp_polynomial.iter())
+            {
+                *result_coefficient += multiplier * temp_coefficient;
+            }
         }
 
-        lagrange_poly
+        for i in 0..coefficients.len() {
+            let coeff = coefficients[i];
+            let power = F::from(BigUint::from(i));
+            let monomial = Monomial { coeff, pow: power };
+            result_polynomial.monomial.push(monomial);
+        }
+
+        result_polynomial
     }
 
     /// return the degree of a polynomial
@@ -384,22 +370,21 @@ mod tests {
     fn test_polynomial_interpolation() {
         let point_x = vec![Fq::from(2), Fq::from(1), Fq::from(0), Fq::from(4)];
         let point_y = vec![Fq::from(2), Fq::from(4), Fq::from(1), Fq::from(8)];
-        let interpolation = UnivariatePolynomial::interpolation(point_x, point_y);
+        let interpolation = UnivariatePolynomial::interpolation(&[
+            (Fq::from(1), Fq::from(2)),
+            (Fq::from(2), Fq::from(3)),
+            (Fq::from(4), Fq::from(11)),
+        ]);
+        let interpolation_check = UnivariatePolynomial::new(vec![
+            Fq::from(1_u8),
+            Fq::from(0_u8),
+            Fq::from(15_u8),
+            Fq::from(1_u8),
+            Fq::from(3_u8),
+            Fq::from(2_u8),
+        ]);
 
-        // 9 + 2x + 3x^2 + 15x^3
-        assert_eq!(
-            interpolation,
-            UnivariatePolynomial::new(vec![
-                Fq::from(9_u8),
-                Fq::from(0_u8),
-                Fq::from(2_u8),
-                Fq::from(1_u8),
-                Fq::from(3_u8),
-                Fq::from(2_u8),
-                Fq::from(15_u8),
-                Fq::from(3_u8),
-            ])
-        );
+        assert_eq!(interpolation, interpolation_check);
     }
 
     #[test]

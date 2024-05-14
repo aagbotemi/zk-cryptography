@@ -2,8 +2,10 @@
 name = "polynomial"
 version = "0.1.0"
 edition = "2021"
-
+authors = ["Abiodun Awoyemi <aabiodunawoyemi@gmail.com>"]
+description = "This is a utils library for working with polynomial"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 ark-ff = "0.4.2"
+num-bigint = "0.4.5"
