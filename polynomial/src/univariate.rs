@@ -1,9 +1,8 @@
 use ark_ff::PrimeField;
 use num_bigint::BigUint;
 use std::{
-    collections::HashMap,
     fmt::{Display, Formatter, Result},
-    ops::{Add, Div, Mul, Sub},
+    ops::{Add, Mul},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -13,10 +12,7 @@ pub struct Monomial<F: PrimeField> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct UnivariatePolynomial<F>
-where
-    F: PrimeField,
-{
+pub struct UnivariatePolynomial<F: PrimeField> {
     pub monomial: Vec<Monomial<F>>,
 }
 
@@ -27,17 +23,35 @@ trait UnivariatePolynomialTrait<F: PrimeField>: Clone {
     fn degree(&self) -> F;
 }
 
-impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
-    fn new(data: Vec<F>) -> Self {
+// impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
+impl<F: PrimeField> UnivariatePolynomial<F> {
+    pub fn new(data: Vec<F>) -> Self {
         let mut monomial: Vec<Monomial<F>> = Vec::new();
 
-        for n in (0..=data.len()).step_by(2) {
-            if n < data.len() {
+        // for n in (0..=data.len()).step_by(2) {
+        //     if n < data.len() {
+        //         let monomial_value: Monomial<F> = Monomial {
+        //             coeff: data[n],
+        //             pow: data[n + 1],
+        //         };
+
+        //         monomial.push(monomial_value);
+        //     }
+        // }
+
+        for n in (0..data.len()).step_by(2) {
+            if n < data.len() - 1 {
                 let monomial_value: Monomial<F> = Monomial {
                     coeff: data[n],
                     pow: data[n + 1],
                 };
-
+                monomial.push(monomial_value);
+            } else if n == data.len() - 1 {
+                // Handle the case when the length of data is odd
+                let monomial_value: Monomial<F> = Monomial {
+                    coeff: data[n],
+                    pow: F::zero(),
+                };
                 monomial.push(monomial_value);
             }
         }
@@ -45,13 +59,14 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
         UnivariatePolynomial { monomial }
     }
 
-    fn evaluate(&self, point: F) -> F {
+    //
+    pub fn evaluate(coefficients: UnivariatePolynomial<F>, point: F) -> F {
         let mut point_evaluation: F = F::from(0_u8);
 
         // 5 + 2x + 4x^6 at x = 2
         // (5 * 1) + (2 * 2) + (4 * 64)
         // 5 + 4 + 256 => 265
-        for n in self.monomial.iter() {
+        for n in coefficients.monomial.iter() {
             let coefficient = n.coeff;
             let n_pow: <F as PrimeField>::BigInt = n.pow.into();
             let power = point.pow(&n_pow);
@@ -63,7 +78,7 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
         point_evaluation
     }
 
-    fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F> {
+    pub fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F> {
         let mut result_polynomial: UnivariatePolynomial<F> =
             UnivariatePolynomial { monomial: vec![] };
         let zero = F::zero();
@@ -107,7 +122,7 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
     }
 
     /// return the degree of a polynomial
-    fn degree(&self) -> F {
+    pub fn degree(&self) -> F {
         let mut highest_degree: F = F::from(0_u8);
         for m in self.monomial.iter() {
             if m.pow > highest_degree {
@@ -224,8 +239,8 @@ impl<F: PrimeField> Display for UnivariatePolynomial<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::univariate::UnivariatePolynomialTrait;
     use super::UnivariatePolynomial;
+    use crate::univariate::UnivariatePolynomialTrait;
     use ark_ff::MontConfig;
     use ark_ff::{Fp64, MontBackend};
 
@@ -247,7 +262,7 @@ mod tests {
             Fq::from(6_u8),
         ];
         let polynomial = UnivariatePolynomial::new(data);
-        let evaluation = polynomial.evaluate(Fq::from(2_u8));
+        let evaluation = UnivariatePolynomial::evaluate(polynomial, Fq::from(2_u8));
 
         assert_eq!(evaluation, Fq::from(10_u8));
     }
