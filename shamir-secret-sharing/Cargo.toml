@@ -1,0 +1,13 @@
+[package]
+name = "shamir-secret-sharing"
+version = "0.1.0"
+edition = "2021"
+authors = ["Abiodun Awoyemi <aabiodunawoyemi@gmail.com>"]
+description = "This is a utils library for working with the Shamir Secret Sharing"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+polynomial = { path = "../polynomial" }
+ark-ff = "0.4.2"
+rand = "0.8.5"
