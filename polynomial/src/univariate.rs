@@ -1,3 +1,4 @@
+use crate::interface::UnivariatePolynomialTrait;
 use ark_ff::PrimeField;
 use num_bigint::BigUint;
 use std::{
@@ -6,37 +7,30 @@ use std::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Monomial<F: PrimeField> {
+pub struct UnivariateMonomial<F: PrimeField> {
     pub coeff: F,
     pub pow: F,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnivariatePolynomial<F: PrimeField> {
-    pub monomial: Vec<Monomial<F>>,
-}
-
-pub trait UnivariatePolynomialTrait<F: PrimeField>: Clone {
-    fn new(data: Vec<F>) -> Self;
-    fn evaluate(&self, point: F) -> F;
-    fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F>;
-    fn degree(&self) -> F;
+    pub monomial: Vec<UnivariateMonomial<F>>,
 }
 
 impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
     fn new(data: Vec<F>) -> Self {
-        let mut monomial: Vec<Monomial<F>> = Vec::new();
+        let mut monomial: Vec<UnivariateMonomial<F>> = Vec::new();
 
         for n in (0..data.len()).step_by(2) {
             if n < data.len() - 1 {
-                let monomial_value: Monomial<F> = Monomial {
+                let monomial_value: UnivariateMonomial<F> = UnivariateMonomial {
                     coeff: data[n],
                     pow: data[n + 1],
                 };
                 monomial.push(monomial_value);
             } else if n == data.len() - 1 {
                 // Handle the case when the length of data is odd
-                let monomial_value: Monomial<F> = Monomial {
+                let monomial_value: UnivariateMonomial<F> = UnivariateMonomial {
                     coeff: data[n],
                     pow: F::zero(),
                 };
@@ -101,7 +95,7 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
         for i in 0..coefficients.len() {
             let coeff = coefficients[i];
             let power = F::from(BigUint::from(i));
-            let monomial = Monomial { coeff, pow: power };
+            let monomial = UnivariateMonomial { coeff, pow: power };
             result_polynomial.monomial.push(monomial);
         }
 
@@ -128,7 +122,7 @@ impl<F: PrimeField> Mul for UnivariatePolynomial<F> {
         // (6x^4 + 12x^3 + 15x^2 + 10x^3 + 20x^2 + 25x + 12x^2 + 24x + 30)
         // (6x^4 + 22x^3 + 47x^2  + 49x + 30)
 
-        let mut result_monomial: Vec<Monomial<F>> = Vec::new();
+        let mut result_monomial: Vec<UnivariateMonomial<F>> = Vec::new();
 
         for lhs_mn in &self.monomial {
             for rhs_mn in &rhs.monomial {
@@ -145,7 +139,7 @@ impl<F: PrimeField> Mul for UnivariatePolynomial<F> {
                 }
 
                 if !found_like_terms {
-                    result_monomial.push(Monomial {
+                    result_monomial.push(UnivariateMonomial {
                         coeff: new_coeff,
                         pow: new_pow,
                     });
@@ -173,7 +167,7 @@ impl<F: PrimeField> Add for UnivariatePolynomial<F> {
             match (lhs_mn, rhs_mn) {
                 (Some(l), Some(r)) => {
                     if l.pow == r.pow {
-                        result_monomials.push(Monomial {
+                        result_monomials.push(UnivariateMonomial {
                             coeff: l.coeff + r.coeff,
                             pow: l.pow,
                         });

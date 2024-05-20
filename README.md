@@ -2,4 +2,6 @@
 
 ### Crates
 
-[Polynomial](/polynomial) - univariate polynomial
+[Polynomial](/polynomial) - univariate, multilinear
+
+[Shamir Secret Sharing](/shamir-secret-sharing) - shamir secret sharing implementation
