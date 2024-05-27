@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
 
-members = ["polynomial", "shamir-secret-sharing"]
+members = ["fiat-shamir-transcript", "polynomial", "shamir-secret-sharing"]
