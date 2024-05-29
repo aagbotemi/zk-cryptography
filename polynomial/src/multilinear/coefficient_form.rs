@@ -39,11 +39,11 @@ impl<F: PrimeField> MultiLinearPolynomialTrait<F> for MultiLinearPolynomial<F> {
             let y1 = &self.terms[i].coefficient;
             let y2 = &self.terms[j].coefficient;
             // r.y1 + (1-r).y2 straight line formula
-            let y = (eval_points * y2) + ((F::from(1_u8) - eval_points) * y1);
+            let y = (eval_points * y2) + ((F::one() - eval_points) * y1);
 
             res.terms.push(MultiLinearMonomial {
                 coefficient: y,
-                vars: vec![false],
+                vars: vec![false], // TODO: likely bug here
             })
         }
 
@@ -122,10 +122,9 @@ impl<F: PrimeField> Display for MultiLinearPolynomial<F> {
 
 #[cfg(test)]
 mod tests {
+    use crate::interface::MultiLinearPolynomialTrait;
 
-    use crate::multilinear::{MultiLinearMonomial, MultiLinearPolynomialTrait};
-
-    use super::MultiLinearPolynomial;
+    use super::{MultiLinearMonomial, MultiLinearPolynomial};
     use ark_ff::MontConfig;
     use ark_ff::{Fp64, MontBackend};
 
