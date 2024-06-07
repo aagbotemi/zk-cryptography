@@ -20,4 +20,6 @@ pub trait MLETrait<F: PrimeField> {
     fn partial_evaluation(&self, eval_point: F, variable_index: usize) -> Self;
     fn evaluation(&self, evaluation_points: &[F]) -> F;
     fn relabel(&self) -> Self;
+    fn additive_identity(num_vars: usize) -> Self;
+    fn evaluations_to_bytes(&self) -> Vec<u8>;
 }

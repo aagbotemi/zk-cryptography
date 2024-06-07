@@ -1,10 +1,12 @@
-use crate::{interface::MLETrait, utils::pick_pairs_with_random_index};
-use ark_ff::PrimeField;
+use std::ops::{Add, AddAssign};
 
-#[derive(Debug, Clone, PartialEq)]
-struct MLE<F: PrimeField> {
-    n_vars: usize,
-    evaluations: Vec<F>,
+use crate::{interface::MLETrait, utils::pick_pairs_with_random_index};
+use ark_ff::{BigInteger, PrimeField};
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct MLE<F: PrimeField> {
+    pub n_vars: usize,
+    pub evaluations: Vec<F>,
 }
 
 impl<F: PrimeField> MLETrait<F> for MLE<F> {
@@ -35,17 +37,17 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
 
             // r.y1 + (1-r).y2 straight line formula
             let res_y: F = (eval_point * y2) + ((F::one() - eval_point) * y1);
-
             result.push(res_y);
         }
 
+        // println!("result={result:?}");
         Self {
             n_vars: self.n_vars - 1,
             evaluations: result,
         }
     }
 
-    /// full evaluation of a polynomial - coefficient form
+    /// full evaluation of a polynomial - evaluation form
     fn evaluation(&self, evaluation_points: &[F]) -> F {
         assert_eq!(
             evaluation_points.len(),
@@ -53,20 +55,65 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
             "Number of evaluation points must match the number of variables"
         );
 
-        let mut poly_result: F = F::one();
         let mut eval_result: MLE<F> = self.relabel();
-
         for i in 0..evaluation_points.len() {
             eval_result = eval_result.partial_evaluation(evaluation_points[i], 0);
         }
 
-        poly_result = eval_result.evaluations[0];
-
-        poly_result
+        eval_result.evaluations[0]
     }
 
     fn relabel(&self) -> Self {
         self.clone()
+    }
+
+    fn evaluations_to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        for evaluation in &self.evaluations {
+            bytes.extend(evaluation.into_bigint().to_bytes_be());
+        }
+
+        bytes
+    }
+
+    // fn zero(num_vars: usize) -> Self {
+    //     Self::new(vec![F::zero(); 1 << num_vars])
+    // }
+
+    fn additive_identity(num_vars: usize) -> Self {
+        Self::new(vec![F::zero(); 1 << num_vars])
+    }
+}
+
+impl<F: PrimeField> Add for MLE<F> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let lhs = self.evaluations;
+        let mut res = vec![];
+
+        for i in 0..lhs.len() {
+            res.push(lhs[i] + rhs.evaluations[i])
+        }
+
+        Self {
+            n_vars: self.n_vars,
+            evaluations: res,
+        }
+    }
+}
+
+impl<F: PrimeField> AddAssign for MLE<F> {
+    fn add_assign(&mut self, other: Self) {
+        // TODO: come up with an algo for handling the case where the number of variables in the two polynomials are not the same
+        // if self.n_vars != other.n_vars {
+        //     panic!("The number of variables in the two polynomials must be the same");
+        // }
+
+        for i in 0..self.evaluations.len() {
+            self.evaluations[i] += other.evaluations[i];
+        }
     }
 }
 
