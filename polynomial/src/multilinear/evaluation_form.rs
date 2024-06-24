@@ -1,6 +1,8 @@
 use std::ops::{Add, AddAssign};
 
-use crate::{interface::MLETrait, utils::pick_pairs_with_random_index};
+use crate::{
+    interface::MLETrait, univariate::UnivariatePolynomial, utils::pick_pairs_with_random_index,
+};
 use ark_ff::{BigInteger, PrimeField};
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -76,10 +78,6 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
 
         bytes
     }
-
-    // fn zero(num_vars: usize) -> Self {
-    //     Self::new(vec![F::zero(); 1 << num_vars])
-    // }
 
     fn additive_identity(num_vars: usize) -> Self {
         Self::new(vec![F::zero(); 1 << num_vars])

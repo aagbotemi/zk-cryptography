@@ -1,13 +1,21 @@
 use ark_ff::{BigInteger, PrimeField};
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
-use polynomial::{interface::MLETrait, MLE};
+use polynomial::{interface::MLETrait, UnivariatePolynomial, MLE};
 
 #[derive(Clone, Debug, Default)]
 pub struct SumcheckProver<F: PrimeField> {
     poly: MLE<F>,
     init_poly: MLE<F>,
+    // uni_poly: MLE<F>,
     sum: F,
-    transcript: FiatShamirTranscript,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct SumcheckProof<F: PrimeField> {
+    init_poly: MLE<F>,
+    poly: MLE<F>,
+    sum: F,
+    univariate_poly: Vec<MLE<F>>,
 }
 
 #[derive(Debug)]
@@ -21,7 +29,7 @@ impl<F: PrimeField> SumcheckProver<F> {
             poly,
             init_poly: Default::default(),
             sum: Default::default(),
-            transcript: Default::default(),
+            // transcript: Default::default(),
         }
     }
 
@@ -29,7 +37,7 @@ impl<F: PrimeField> SumcheckProver<F> {
         self.sum = self.poly.evaluations.iter().sum();
     }
 
-    pub fn skip_first_and_sum_all(&mut self) -> Vec<u8> {
+    pub fn skip_first_and_sum_all(&mut self) -> MLE<F> {
         let rounds = self.poly.n_vars - 1;
         let bh = boolean_hypercube::<F>(rounds);
 
@@ -41,40 +49,46 @@ impl<F: PrimeField> SumcheckProver<F> {
             }
             bh_sum += sum_except_first;
         }
-        println!("bh_sum={bh_sum:?}");
+        // println!("bh_sum={bh_sum:?}");
 
-        self.init_poly = bh_sum.clone();
-        bh_sum.evaluations_to_bytes()
+        // self.init_poly = bh_sum.clone();
+        bh_sum
     }
 
-    pub fn prove(&mut self) -> (SumcheckProver<F>, Vec<F>) {
+    pub fn prove(&mut self) -> (SumcheckProof<F>, Vec<F>) {
+        // let mut uni_polys = MLE::<F>::additive_identity(1);
+        let mut uni_polys = vec![];
+
         // send sum as bytes to the transcript
-        let mut transcrpt = self.transcript.clone();
+        let mut transcrpt = FiatShamirTranscript::new();
         let poly_sum_bytes = convert_field_to_byte(&self.sum);
         transcrpt.commit(&poly_sum_bytes);
+
+        // println!("transcrpt-sum={:?}", transcrpt);
 
         let mut challenges: Vec<F> = vec![];
         let mut current_poly = self.poly.relabel();
 
         for i in 0..self.poly.n_vars {
             let poly_sum_bytes_1 = self.skip_first_and_sum_all();
+            uni_polys.push(poly_sum_bytes_1.clone());
+            // println!("poly_sum_bytes_1={poly_sum_bytes_1:?}");
 
-            transcrpt.commit(&poly_sum_bytes_1);
+            transcrpt.commit(&poly_sum_bytes_1.evaluations_to_bytes());
             //get the random r
             let random_r: F = transcrpt.evaluate_challenge_into_field::<F>();
             challenges.push(random_r);
-            println!("random={random_r:?}");
 
             // update polynomial
             current_poly = current_poly.partial_evaluation(random_r, 0);
         }
 
         (
-            SumcheckProver {
+            SumcheckProof {
+                init_poly: self.poly.clone(),
                 poly: current_poly,
-                init_poly: self.init_poly.clone(),
                 sum: self.sum,
-                transcript: transcrpt,
+                univariate_poly: uni_polys,
             },
             challenges,
         )
@@ -104,16 +118,44 @@ fn convert_field_to_byte<F: PrimeField>(element: &F) -> Vec<u8> {
 }
 
 impl<F: PrimeField> SumCheckVerifier<F> {
-    pub fn verify(proof: &SumcheckProver<F>) -> bool {
-        // pub fn verify(&self, proof: &SumcheckProver<F>) -> bool {
-        // println!("proofproof={:?}", proof);
-        let first_sum = proof.init_poly.evaluation(&vec![F::zero()])
-            + proof.init_poly.evaluation(&vec![F::one()]);
+    pub fn verify(proof: &SumcheckProof<F>) -> bool {
+        // send sum as bytes to the transcript
+        let mut transcrpt = FiatShamirTranscript::new();
+        let poly_sum_bytes = convert_field_to_byte(&proof.sum);
+        transcrpt.commit(&poly_sum_bytes);
 
-        if first_sum != proof.sum {
-            return false;
+        let mut claimed_sum = proof.sum;
+        let mut challenges: Vec<F> = vec![];
+
+        let initial_poly = proof.univariate_poly.clone();
+
+        for i in 0..proof.init_poly.n_vars {
+            // Verify the univariate polynomial at each round
+            let uni_poly = &initial_poly[i];
+
+            // Check if the claimed sum matches the evaluation at 0 and 1
+            let eval_p0_p1 =
+                uni_poly.evaluation(&vec![F::zero()]) + uni_poly.evaluation(&vec![F::one()]);
+
+            if eval_p0_p1 != proof.sum {
+                return false;
+            }
+
+            // Commit the univariate polynomial to the transcript
+            transcrpt.commit(&uni_poly.evaluations_to_bytes());
+
+            // Generate the challenge for this round
+            let challenge: F = transcrpt.evaluate_challenge_into_field::<F>();
+            challenges.push(challenge);
+
+            // Update the claimed sum for the next round
+            claimed_sum = uni_poly.evaluation(&vec![challenge]);
         }
-        true
+        
+        println!("proof.init_poly={:?}", proof.init_poly.evaluation(&vec![challenges[1]; 3]));
+        println!("claimed_sum={:?}", claimed_sum);
+        
+        proof.init_poly.evaluation(challenges.as_slice()) == claimed_sum
     }
 }
 
@@ -152,40 +194,5 @@ fn main() {
     // println!("profprofprof={:?}", proof);
 
     let verifier = SumCheckVerifier::verify(&proof.0);
-    // println!("verifier={:?}", verifier);
-
-    // fn boolean_hypercube_2(n: usize) -> Vec<Vec<usize>> {
-    //     if n == 0 {
-    //         vec![vec![]] // Base case: return a single empty vector
-    //     } else {
-    //         // Recursively build the hypercube for n - 1
-    //         let mut smaller_hypercube = boolean_hypercube_2(n - 1);
-    //         // println!("smaller_hypercube={:?}", smaller_hypercube);
-    //         let mut hypercube = smaller_hypercube.clone();
-
-    //         // Append 0 to the front of each vector in the smaller hypercube
-    //         for vertex in smaller_hypercube.iter_mut() {
-    //             vertex.insert(0, 0);
-    //         }
-
-    //         // Append 1 to the front of each vector in the cloned smaller hypercube
-    //         for vertex in hypercube.iter_mut() {
-    //             vertex.insert(0, 1);
-    //         }
-
-    //         // Combine both halves to form the hypercube
-    //         smaller_hypercube.extend(hypercube);
-    //         smaller_hypercube
-    //     }
-    // }
-
-    // let now_2 = Instant::now();
-    // let bh_2 = boolean_hypercube_2(3);
-    // println!("Time taken Hypercube 2: {:?}", now_2.elapsed());
-    // println!("boolean_hypercube_2_time={:?}", bh_2);
-
-    // let now = Instant::now();
-    // let bh = boolean_hypercube::<Fq>(3);
-    // println!("Time taken Hypercube 1: {:?}", now.elapsed());
-    // println!("boolean_hypercube_1_time={:?}", bh);
+    println!("verifier={:?}", verifier);
 }

@@ -1,7 +1,7 @@
 use crate::{multilinear::coefficient_form::MultiLinearMonomial, UnivariatePolynomial};
 use ark_ff::PrimeField;
 
-pub trait UnivariatePolynomialTrait<F: PrimeField>: Clone {
+pub trait UnivariatePolynomialTrait<F: PrimeField> {
     fn new(data: Vec<F>) -> Self;
     fn evaluate(&self, point: F) -> F;
     fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F>;
