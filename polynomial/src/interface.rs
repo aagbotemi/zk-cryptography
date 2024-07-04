@@ -1,7 +1,7 @@
 use crate::{multilinear::coefficient_form::MultiLinearMonomial, UnivariatePolynomial};
 use ark_ff::PrimeField;
 
-pub trait UnivariatePolynomialTrait<F: PrimeField>: Clone {
+pub trait UnivariatePolynomialTrait<F: PrimeField> {
     fn new(data: Vec<F>) -> Self;
     fn evaluate(&self, point: F) -> F;
     fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F>;
@@ -20,4 +20,6 @@ pub trait MLETrait<F: PrimeField> {
     fn partial_evaluation(&self, eval_point: F, variable_index: usize) -> Self;
     fn evaluation(&self, evaluation_points: &[F]) -> F;
     fn relabel(&self) -> Self;
+    fn additive_identity(num_vars: usize) -> Self;
+    fn evaluations_to_bytes(&self) -> Vec<u8>;
 }
