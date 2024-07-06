@@ -5,19 +5,19 @@ use std::{
     ops::{Add, Mul},
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct MultiLinearMonomial<F: PrimeField> {
     coefficient: F,
     vars: Vec<bool>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct MultiLinearPolynomial<F: PrimeField> {
     terms: Vec<MultiLinearMonomial<F>>,
 }
 
 impl<F: PrimeField> MultiLinearMonomial<F> {
-    fn new(coefficient: F, vars: Vec<bool>) -> Self {
+    pub fn new(coefficient: F, vars: Vec<bool>) -> Self {
         assert!(
             vars.len() > 0,
             "Length of variables must be greater than zero"
@@ -84,7 +84,7 @@ impl<F: PrimeField> MultiLinearPolynomialTrait<F> for MultiLinearPolynomial<F> {
 
 impl<F: PrimeField> Mul for MultiLinearPolynomial<F> {
     type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
+    fn mul(self, _rhs: Self) -> Self {
         MultiLinearPolynomial { terms: vec![] }
     }
 }
@@ -92,7 +92,7 @@ impl<F: PrimeField> Mul for MultiLinearPolynomial<F> {
 impl<F: PrimeField> Add for MultiLinearPolynomial<F> {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self::Output {
+    fn add(self, _rhs: Self) -> Self::Output {
         MultiLinearPolynomial { terms: vec![] }
     }
 }

@@ -12,7 +12,7 @@ pub struct UnivariateMonomial<F: PrimeField> {
     pub pow: F,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct UnivariatePolynomial<F: PrimeField> {
     pub monomial: Vec<UnivariateMonomial<F>>,
 }
@@ -365,8 +365,8 @@ mod tests {
 
     #[test]
     fn test_polynomial_interpolation() {
-        let point_x = vec![Fq::from(2), Fq::from(1), Fq::from(0), Fq::from(4)];
-        let point_y = vec![Fq::from(2), Fq::from(4), Fq::from(1), Fq::from(8)];
+        // let point_x = vec![Fq::from(2), Fq::from(1), Fq::from(0), Fq::from(4)];
+        // let point_y = vec![Fq::from(2), Fq::from(4), Fq::from(1), Fq::from(8)];
         let interpolation = UnivariatePolynomial::interpolation(&[
             (Fq::from(1), Fq::from(2)),
             (Fq::from(2), Fq::from(3)),

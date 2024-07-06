@@ -2,7 +2,7 @@ use crate::interface::FiatShamirTranscriptTrait;
 use ark_ff::PrimeField;
 use sha2::{Digest, Sha256};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct FiatShamirTranscript {
     hasher: Sha256,
 }
@@ -25,8 +25,6 @@ impl FiatShamirTranscriptTrait for FiatShamirTranscript {
     }
 
     fn evaluate_challenge_into_field<F: PrimeField>(&mut self) -> F {
-        // let xyz = F::from_be_bytes_mod_order(&self.hasher.finalize_reset());
-        // xyz
         F::from_be_bytes_mod_order(&self.challenge())
     }
 }

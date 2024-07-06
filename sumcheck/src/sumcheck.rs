@@ -1,17 +1,15 @@
-use crate::utils::{convert_field_to_byte, skip_first_and_sum_all};
+use crate::utils::convert_field_to_byte;
 use ark_ff::PrimeField;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
 use polynomial::{interface::MLETrait, MLE};
 
-#[derive(Clone, Debug, Default)]
 pub struct Sumcheck<F: PrimeField> {
     poly: MLE<F>,
     sum: F,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct SumcheckProof<F: PrimeField> {
-    poly: MLE<F>,
+pub struct SumcheckProof<'a, F: PrimeField> {
+    poly: &'a MLE<F>,
     sum: F,
     univariate_poly: Vec<MLE<F>>,
 }
@@ -28,7 +26,7 @@ impl<F: PrimeField> Sumcheck<F> {
         self.sum = self.poly.evaluations.iter().sum();
     }
 
-    pub fn prove(&mut self) -> (SumcheckProof<F>, Vec<F>) {
+    pub fn prove(&self) -> (SumcheckProof<F>, Vec<F>) {
         let mut uni_polys = vec![];
 
         // send sum as bytes to the transcript
@@ -37,24 +35,25 @@ impl<F: PrimeField> Sumcheck<F> {
         transcript.commit(&poly_sum_bytes);
 
         let mut challenges: Vec<F> = vec![];
-        let mut current_poly = self.poly.relabel();
+        let mut current_poly: MLE<F> = self.poly.clone();
 
         for _ in 0..self.poly.n_vars {
-            let uni_poly = skip_first_and_sum_all(current_poly.clone());
-            uni_polys.push(uni_poly.clone());
-
+            let uni_poly = current_poly.split_poly_into_two_and_sum_each_part();
             transcript.commit(&uni_poly.evaluations_to_bytes());
+            uni_polys.push(uni_poly);
+
             //get the random r
             let random_r: F = transcript.evaluate_challenge_into_field::<F>();
             challenges.push(random_r);
 
             // update polynomial
             current_poly = current_poly.partial_evaluation(random_r, 0);
+        
         }
 
         (
             SumcheckProof {
-                poly: self.poly.clone(),
+                poly: &self.poly,
                 sum: self.sum,
                 univariate_poly: uni_polys,
             },
@@ -62,7 +61,7 @@ impl<F: PrimeField> Sumcheck<F> {
         )
     }
 
-    pub fn verify(&mut self, proof: &SumcheckProof<F>) -> bool {
+    pub fn verify(&self, proof: &SumcheckProof<F>) -> bool {
         // send sum as bytes to the transcript
         let mut transcript = FiatShamirTranscript::new();
         let poly_sum_bytes = convert_field_to_byte(&proof.sum);
@@ -71,7 +70,7 @@ impl<F: PrimeField> Sumcheck<F> {
         let mut claimed_sum = proof.sum;
         let mut challenges: Vec<F> = vec![];
 
-        let univariate_poly = proof.univariate_poly.clone();
+        let univariate_poly = &proof.univariate_poly;
         for i in 0..proof.poly.n_vars {
             let uni_poly = &univariate_poly[i];
 
@@ -140,8 +139,8 @@ mod tests {
         ]);
         let mut sumcheck = Sumcheck::new(poly);
         sumcheck.calculate_poly_sum();
-        let proof = sumcheck.prove();
-        let verifer = sumcheck.verify(&proof.0);
+        let (proof, _challenges) = &sumcheck.prove();
+        let verifer: bool = sumcheck.verify(&proof);
 
         assert_eq!(verifer, true);
     }

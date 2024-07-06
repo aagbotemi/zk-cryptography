@@ -1,11 +1,11 @@
 use std::ops::{Add, AddAssign};
 
 use crate::{
-    interface::MLETrait, univariate::UnivariatePolynomial, utils::pick_pairs_with_random_index,
+    interface::MLETrait, utils::pick_pairs_with_random_index,
 };
 use ark_ff::{BigInteger, PrimeField};
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MLE<F: PrimeField> {
     pub n_vars: usize,
     pub evaluations: Vec<F>,
@@ -57,16 +57,12 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
             "Number of evaluation points must match the number of variables"
         );
 
-        let mut eval_result: MLE<F> = self.relabel();
+        let mut eval_result: MLE<F> = self.clone();
         for i in 0..evaluation_points.len() {
             eval_result = eval_result.partial_evaluation(evaluation_points[i], 0);
         }
 
         eval_result.evaluations[0]
-    }
-
-    fn relabel(&self) -> Self {
-        self.clone()
     }
 
     fn evaluations_to_bytes(&self) -> Vec<u8> {
@@ -81,6 +77,14 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
 
     fn additive_identity(num_vars: usize) -> Self {
         Self::new(vec![F::zero(); 1 << num_vars])
+    }
+
+    fn split_poly_into_two_and_sum_each_part(&mut self) -> MLE<F> {
+        let mid_point: usize = self.evaluations.len() / 2;
+        let first_half: F = self.evaluations[..mid_point].iter().sum();
+        let second_half: F = self.evaluations[mid_point..].iter().sum();
+
+        Self::new(vec![first_half, second_half])
     }
 }
 
@@ -217,5 +221,37 @@ mod tests {
 
         let evaluation_result = poly.evaluation(&[Fq::from(2), Fq::from(3), Fq::from(4)]);
         assert_eq!(evaluation_result, Fq::from(48));
+    }
+
+    #[test]
+    fn test_split_poly_into_two_and_sum_each_part() {
+        let mut poly1 = MLE::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(2),
+            Fq::from(2),
+            Fq::from(2),
+            Fq::from(2),
+            Fq::from(4),
+        ]);
+        let mut poly2 = MLE::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(2),
+            Fq::from(7),
+            Fq::from(3),
+            Fq::from(3),
+            Fq::from(6),
+            Fq::from(11),
+        ]);
+        let evaluation1 = poly1.split_poly_into_two_and_sum_each_part();
+        let evaluation2 = poly2.split_poly_into_two_and_sum_each_part();
+
+        let expected_polynomial1 = MLE::new(vec![Fq::from(2), Fq::from(10)]);
+        let expected_polynomial2 = MLE::new(vec![Fq::from(9), Fq::from(6)]);
+
+        assert_eq!(evaluation1, expected_polynomial1);
+        assert_eq!(evaluation2, expected_polynomial2);
     }
 }
