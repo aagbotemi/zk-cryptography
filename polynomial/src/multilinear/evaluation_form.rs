@@ -1,8 +1,6 @@
 use std::ops::{Add, AddAssign};
 
-use crate::{
-    interface::MLETrait, utils::pick_pairs_with_random_index,
-};
+use crate::{interface::MLETrait, utils::pick_pairs_with_random_index};
 use ark_ff::{BigInteger, PrimeField};
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,0 +1,11 @@
+[package]
+name = "gkr"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+polynomial = { path = "../polynomial" }
+ark-ff = "0.4.2"
+ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
