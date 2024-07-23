@@ -89,7 +89,6 @@ impl GKRCircuit {
                         gate.inputs[0],
                         gate.inputs[1],
                     );
-                    // println!("gate_decimal={gate_decimal}")
                     mul_evaluations[gate_decimal] = F::one();
                 }
             }

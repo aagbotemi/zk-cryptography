@@ -11,8 +11,8 @@ pub fn size_of_mle_n_var_at_each_layer(layer_index: usize) -> usize {
 
 pub fn transform_label_to_binary_and_to_decimal(a: usize, b: usize, c: usize) -> usize {
     let a_binary: String = format!("{:b}", a);
-    let b_binary = format!("{:02b}", b);
-    let c_binary = format!("{:02b}", c);
+    let b_binary: String = format!("{:02b}", b);
+    let c_binary: String = format!("{:02b}", c);
 
     let combined_binary = format!("{}{}{}", a_binary, b_binary, c_binary);
     usize::from_str_radix(&combined_binary, 2).unwrap_or(0)
@@ -40,6 +40,6 @@ mod tests {
         // a at layer 1, b & c at layer 2
         assert_eq!(transform_label_to_binary_and_to_decimal(1, 2, 3), 27);
         // a at layer 2, b & c at layer 3
-        assert_eq!(transform_label_to_binary_and_to_decimal(3, 6, 7), 247); 
+        assert_eq!(transform_label_to_binary_and_to_decimal(3, 6, 7), 247);
     }
 }
