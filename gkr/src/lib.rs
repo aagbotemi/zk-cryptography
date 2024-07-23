@@ -1,4 +1,4 @@
 pub mod circuit;
 pub mod gate;
 pub mod utils;
-pub mod w;
+pub mod round_polynomial;
