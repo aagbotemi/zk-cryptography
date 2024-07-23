@@ -90,6 +90,12 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
     fn additive_identity(num_vars: usize) -> Self {
         Self::new(vec![F::zero(); 1 << num_vars])
     }
+
+    fn sum_over_the_boolean_hypercube(&self) -> F {
+        self.evaluations
+            .iter()
+            .fold(F::zero(), |acc, val| acc + val)
+    }
 }
 
 impl<F: PrimeField> Add for MLE<F> {
@@ -257,5 +263,28 @@ mod tests {
 
         assert_eq!(evaluation1, expected_polynomial1);
         assert_eq!(evaluation2, expected_polynomial2);
+    }
+
+    #[test]
+    fn test_sum_over_boolean_hypercube() {
+        let val = vec![
+            Fq::from(1),
+            Fq::from(2),
+            Fq::from(3),
+            Fq::from(4),
+            Fq::from(5),
+            Fq::from(6),
+            Fq::from(7),
+            Fq::from(8),
+        ];
+
+        let poly = MLE::new(val);
+
+        let res = poly.sum_over_the_boolean_hypercube();
+
+        assert!(
+            res == Fq::from(36),
+            "Incorrect sum over the boolean hypercube"
+        );
     }
 }

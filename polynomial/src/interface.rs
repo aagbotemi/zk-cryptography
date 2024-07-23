@@ -20,4 +20,5 @@ pub trait MLETrait<F: PrimeField> {
     fn partial_evaluation(&self, eval_point: F, variable_index: usize) -> Self;
     fn evaluation(&self, evaluation_points: &[F]) -> F;
     fn additive_identity(num_vars: usize) -> Self;
+    fn sum_over_the_boolean_hypercube(&self) -> F;
 }
