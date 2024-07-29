@@ -50,17 +50,17 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
         }
     }
 
-    fn partial_evaluation(&self, eval_point: F, variable_index: usize) -> Self {
+    fn partial_evaluation(&self, eval_point: &F, variable_index: &usize) -> Self {
         let new_evaluation: &Vec<F> = &self.evaluations;
 
         let mut result: Vec<F> = Vec::with_capacity(self.evaluations.len() / 2);
 
-        for (i, j) in pick_pairs_with_random_index(self.evaluations.len(), variable_index) {
+        for (i, j) in pick_pairs_with_random_index(self.evaluations.len(), *variable_index) {
             let y1: &F = &new_evaluation[i];
             let y2: &F = &new_evaluation[j];
 
             // r.y1 + (1-r).y2 straight line formula
-            let res_y: F = (eval_point * y2) + ((F::one() - eval_point) * y1);
+            let res_y: F = (*eval_point * y2) + ((F::one() - eval_point) * y1);
             result.push(res_y);
         }
 
@@ -81,7 +81,7 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
 
         let mut eval_result: MLE<F> = self.clone();
         for i in 0..evaluation_points.len() {
-            eval_result = eval_result.partial_evaluation(evaluation_points[i], 0);
+            eval_result = eval_result.partial_evaluation(&evaluation_points[i], &0);
         }
 
         eval_result.evaluations[0]
@@ -148,7 +148,7 @@ mod tests {
         let polynomial = MLE::new(evaluations);
 
         let evaluation_point = Fq::from(5);
-        let new_polynomial = polynomial.partial_evaluation(evaluation_point, 0);
+        let new_polynomial = polynomial.partial_evaluation(&evaluation_point, &0);
 
         let expected_polynomial = MLE::new(vec![Fq::from(15), Fq::from(4)]);
 
@@ -170,19 +170,19 @@ mod tests {
         let polynomial = MLE::new(evaluations);
 
         // obtain: f(2,y,z) = 4yz + 4y + 6z + 9 at y = 3, z = 2 = 57
-        let new_polynomial_x_1 = polynomial.partial_evaluation(Fq::from(2), 0);
+        let new_polynomial_x_1 = polynomial.partial_evaluation(&Fq::from(2), &0);
         // 4yz + 4y + 6z + 9
         let x_1_eval_result = new_polynomial_x_1.evaluation(&vec![Fq::from(3), Fq::from(2)]);
         assert_eq!(x_1_eval_result, Fq::from(57));
 
         // obtain: f(x,3,z) = 6xz + 3x + 6z + 15 at y = 3, z = 2 = 72
-        let new_polynomial_y_1 = polynomial.partial_evaluation(Fq::from(3), 1);
+        let new_polynomial_y_1 = polynomial.partial_evaluation(&Fq::from(3), &1);
         // 6xz + 3x + 6z + 15
         let y_1_eval_result = new_polynomial_y_1.evaluation(&vec![Fq::from(3), Fq::from(2)]);
         assert_eq!(y_1_eval_result, Fq::from(72));
 
         // obtain: f(x,y,1) = 2xy + 3x + 4y + 9  at y = 3, z = 2 = 38
-        let new_polynomial_z_1 = polynomial.partial_evaluation(Fq::from(1), 2);
+        let new_polynomial_z_1 = polynomial.partial_evaluation(&Fq::from(1), &2);
         // 2xy + 3x + 4y + 9
         let z_1_eval_result = new_polynomial_z_1.evaluation(&vec![Fq::from(3), Fq::from(2)]);
         assert_eq!(z_1_eval_result, Fq::from(38));

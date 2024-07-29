@@ -33,7 +33,7 @@ pub fn skip_first_and_sum_all<'a, F: PrimeField>(current_poly: MLE<F>) -> MLE<F>
         let mut sum_except_first = current_poly.clone();
 
         for bh_i_i in bh_i {
-            sum_except_first = sum_except_first.partial_evaluation(bh_i_i, 1);
+            sum_except_first = sum_except_first.partial_evaluation(&bh_i_i, &1);
         }
         bh_sum += sum_except_first;
     }
