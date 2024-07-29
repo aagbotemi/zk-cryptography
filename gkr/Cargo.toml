@@ -7,5 +7,8 @@ edition = "2021"
 
 [dependencies]
 polynomial = { path = "../polynomial" }
+sumcheck = { path = "../sumcheck" }
+fiat_shamir = { path = "../fiat-shamir-transcript" }
 ark-ff = "0.4.2"
 ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
+ark-bls12-381 = "0.4.0"

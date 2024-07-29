@@ -65,7 +65,7 @@ impl GKRCircuit {
         GKRCircuitEvaluation { layers }
     }
 
-    pub fn add_i_mul_i_mle<F: PrimeField>(&self, layer_index: usize) -> (MLE<F>, MLE<F>) {
+    pub fn add_mul_mle<F: PrimeField>(&self, layer_index: usize) -> (MLE<F>, MLE<F>) {
         let layer = &self.layers[layer_index];
         let n_vars = size_of_mle_n_var_at_each_layer(layer_index);
 
@@ -256,7 +256,7 @@ mod tests {
 
         let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
 
-        let (add_mle, mul_mle) = circuit.add_i_mul_i_mle::<Fr>(0);
+        let (add_mle, mul_mle) = circuit.add_mul_mle::<Fr>(0);
 
         // there is no mul gate in layer 0, the mul mle should be zero
         assert_eq!(mul_mle.is_zero(), true);
@@ -305,7 +305,7 @@ mod tests {
 
         let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
 
-        let (add_mle, mul_mle) = circuit.add_i_mul_i_mle::<Fr>(1);
+        let (add_mle, mul_mle) = circuit.add_mul_mle::<Fr>(1);
 
         // there is one mul gate in layer 0, the mul mle should be non-zero
         assert_eq!(mul_mle.is_zero(), false);
@@ -441,7 +441,7 @@ mod tests {
 
         let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
 
-        let (add_mle, mul_mle) = circuit.add_i_mul_i_mle::<Fr>(2);
+        let (add_mle, mul_mle) = circuit.add_mul_mle::<Fr>(2);
 
         // there is one mul gate in layer 0, the mul mle should be non-zero
         assert_eq!(mul_mle.is_zero(), false);
