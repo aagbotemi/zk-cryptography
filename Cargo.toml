@@ -2,7 +2,7 @@
 resolver = "2"
 
 members = [
-    "fiat-shamir-transcript",
+    "fiat-shamir-transcript", "finite-field",
     "polynomial",
     "shamir-secret-sharing",
     "sumcheck",
