@@ -23,3 +23,10 @@ pub trait MLETrait<F: PrimeField> {
     fn evaluations_to_bytes(&self) -> Vec<u8>;
     fn split_poly_into_two_and_sum_each_part(&mut self) -> Self;
 }
+
+pub trait ComposedMLETrait<F: PrimeField> {
+    fn evaluation(&self, points: &[F]) -> F;
+    fn partial_evaluation(&self, eval_point: F, variable_index: usize) -> Self;
+    fn element_product(&self) -> Vec<F>;
+    fn element_add(&self) -> Vec<F>;
+}
