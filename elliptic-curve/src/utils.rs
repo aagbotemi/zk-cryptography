@@ -1,4 +1,3 @@
-
 pub fn bits(scalar: usize) -> usize {
     // (0..(format!("{:02b}", scalar).len() - 1)).rev()
     if scalar == 0 {

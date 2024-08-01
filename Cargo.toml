@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
 
-members = [
-    "fiat-shamir-transcript", "finite-field",
+members = [ "elliptic-curve",
+    "fiat-shamir-transcript", "field",
     "polynomial",
     "shamir-secret-sharing",
     "sumcheck",

@@ -231,7 +231,7 @@ impl EllipticCurveTrait for EllipticCurve {
             if bit(scalar, i) {
                 new_point = self.add(&new_point, point)?;
             }
-        };
+        }
 
         assert!(self.is_on_curve(&new_point));
 

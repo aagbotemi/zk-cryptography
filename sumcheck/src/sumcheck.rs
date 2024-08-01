@@ -48,7 +48,6 @@ impl<F: PrimeField> Sumcheck<F> {
 
             // update polynomial
             current_poly = current_poly.partial_evaluation(random_r, 0);
-        
         }
 
         (
