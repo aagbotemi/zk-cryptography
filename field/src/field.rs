@@ -12,7 +12,7 @@ pub trait FieldTrait {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Field {
-    value: usize,
+    pub value: usize,
     modulus: usize,
 }
 
@@ -32,6 +32,10 @@ impl FieldTrait for Field {
     }
 
     fn inverse(&self) -> Option<Field> {
+        if self.value == 0 {
+            return None;
+        }
+
         for i in 1..self.modulus {
             if (self.value * i) % self.modulus == 1 {
                 return Some(Field::new(i, self.modulus));
@@ -50,8 +54,11 @@ impl FieldTrait for Field {
     }
 
     fn sqrt(&self) -> Option<Self> {
-        if self.value <= 0 {
-            return None;
+        // if self.value <= 0 {
+        //     return None;
+        // }
+        if self.value == 0 {
+            return Some(Field::new(0, self.modulus));
         }
 
         let result_value = (self.value as f64).sqrt() as usize;
