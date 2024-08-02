@@ -63,7 +63,7 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
         eval_result.evaluations[0]
     }
 
-    fn evaluations_to_bytes(&self) -> Vec<u8> {
+    fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
         for evaluation in &self.evaluations {

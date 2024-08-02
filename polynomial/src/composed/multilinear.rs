@@ -41,10 +41,14 @@ impl<F: PrimeField> ComposedMLE<F> {
         let mut bytes = Vec::new();
 
         for mle in &self.mles {
-            bytes.extend_from_slice(&mle.evaluations_to_bytes());
+            bytes.extend_from_slice(&mle.to_bytes());
         }
 
         bytes
+    }
+
+    pub fn max_degree(&self) -> usize {
+        self.mles.len()
     }
 }
 
@@ -70,7 +74,7 @@ impl<F: PrimeField> ComposedMLETrait<F> for ComposedMLE<F> {
         ComposedMLE { mles: new_mles }
     }
 
-    fn element_product(&self) -> Vec<F> {
+    fn element_wise_product(&self) -> Vec<F> {
         let length_of_poly = &self.mles[0].evaluations.len();
 
         (0..*length_of_poly)
@@ -78,7 +82,7 @@ impl<F: PrimeField> ComposedMLETrait<F> for ComposedMLE<F> {
             .collect()
     }
 
-    fn element_add(&self) -> Vec<F> {
+    fn element_wise_add(&self) -> Vec<F> {
         let length_of_poly = &self.mles[0].evaluations.len();
 
         (0..*length_of_poly)
@@ -126,12 +130,12 @@ mod tests {
     }
 
     #[test]
-    fn test_element_product() {
+    fn test_element_wise_product() {
         let mle1 = MLE::new(vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(3)]);
         let mle2 = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
 
         let mles = ComposedMLE::new(vec![mle1, mle2]);
-        let element_product = mles.element_product();
+        let element_product = mles.element_wise_product();
         assert_eq!(
             element_product,
             vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(3)]
@@ -139,12 +143,12 @@ mod tests {
     }
 
     #[test]
-    fn test_element_add() {
+    fn test_element_wise_add() {
         let mle1 = MLE::new(vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(3)]);
         let mle2 = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
 
         let mles = ComposedMLE::new(vec![mle1, mle2]);
-        let element_product = mles.element_add();
+        let element_product = mles.element_wise_add();
         assert_eq!(
             element_product,
             vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(4)]
@@ -152,19 +156,23 @@ mod tests {
     }
 
     #[test]
-    fn test_n_vars() {
+    fn test_n_vars_and_max_degree() {
         let mle1 = MLE::new(vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(3)]);
         let mle2 = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
 
         let mles_1 = ComposedMLE::new(vec![mle1, mle2]);
         let n_vars_1 = mles_1.n_vars();
+        let max_degree_1 = mles_1.max_degree();
         assert_eq!(n_vars_1, 2);
+        assert_eq!(max_degree_1, 2);
 
         let mle3 = MLE::new(vec![Fq::from(0); 32]);
         let mle4 = MLE::new(vec![Fq::from(1); 32]);
 
         let mles_2 = ComposedMLE::new(vec![mle3, mle4]);
         let n_vars_2 = mles_2.n_vars();
+        let max_degree_2 = mles_2.max_degree();
         assert_eq!(n_vars_2, 5);
+        assert_eq!(max_degree_2, 2);
     }
 }
