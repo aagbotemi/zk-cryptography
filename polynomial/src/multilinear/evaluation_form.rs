@@ -9,6 +9,56 @@ pub struct MLE<F: PrimeField> {
     pub evaluations: Vec<F>,
 }
 
+impl<F: PrimeField> MLE<F> {
+    pub fn add_distinct(&self, rhs: &Self) -> Self {
+        let mut new_evaluations = Vec::new();
+        let repeat_sequence = rhs.evaluations.len();
+
+        for i in 0..self.evaluations.len() {
+            for j in 0..repeat_sequence {
+                new_evaluations.push(self.evaluations[i] + rhs.evaluations[j]);
+            }
+        }
+
+        Self::new(new_evaluations)
+    }
+
+    pub fn mul_distinct(&self, rhs: &Self) -> Self {
+        let mut new_evaluations = Vec::new();
+        let repeat_sequence = rhs.evaluations.len();
+
+        for i in 0..self.evaluations.len() {
+            for j in 0..repeat_sequence {
+                new_evaluations.push(self.evaluations[i] * rhs.evaluations[j]);
+            }
+        }
+
+        Self::new(new_evaluations)
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        for evaluation in &self.evaluations {
+            bytes.extend(evaluation.into_bigint().to_bytes_be());
+        }
+
+        bytes
+    }
+
+    pub fn additive_identity(num_vars: usize) -> Self {
+        Self::new(vec![F::zero(); 1 << num_vars])
+    }
+
+    pub fn split_poly_into_two_and_sum_each_part(&mut self) -> MLE<F> {
+        let mid_point: usize = self.evaluations.len() / 2;
+        let first_half: F = self.evaluations[..mid_point].iter().sum();
+        let second_half: F = self.evaluations[mid_point..].iter().sum();
+
+        Self::new(vec![first_half, second_half])
+    }
+}
+
 impl<F: PrimeField> MLETrait<F> for MLE<F> {
     fn new(evaluations: Vec<F>) -> Self {
         let num_evaluations = evaluations.len();
@@ -61,28 +111,6 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
         }
 
         eval_result.evaluations[0]
-    }
-
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-
-        for evaluation in &self.evaluations {
-            bytes.extend(evaluation.into_bigint().to_bytes_be());
-        }
-
-        bytes
-    }
-
-    fn additive_identity(num_vars: usize) -> Self {
-        Self::new(vec![F::zero(); 1 << num_vars])
-    }
-
-    fn split_poly_into_two_and_sum_each_part(&mut self) -> MLE<F> {
-        let mid_point: usize = self.evaluations.len() / 2;
-        let first_half: F = self.evaluations[..mid_point].iter().sum();
-        let second_half: F = self.evaluations[mid_point..].iter().sum();
-
-        Self::new(vec![first_half, second_half])
     }
 }
 

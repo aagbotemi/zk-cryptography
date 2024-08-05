@@ -6,31 +6,29 @@ use polynomial::{
 };
 
 #[derive(Debug, Clone)]
-pub struct Sumcheck<F: PrimeField> {
+pub struct ComposedSumcheck<F: PrimeField> {
     pub poly: ComposedMLE<F>,
     pub sum: F,
 }
 
-pub struct SumcheckProof<F: PrimeField> {
+pub struct ComposedSumcheckProof<F: PrimeField> {
     poly: ComposedMLE<F>,
-    sum: F,
     round_polys: Vec<Vec<F>>,
 }
 
-impl<F: PrimeField> Sumcheck<F> {
+impl<F: PrimeField> ComposedSumcheck<F> {
     pub fn new(poly: ComposedMLE<F>) -> Self {
-        Sumcheck {
+        ComposedSumcheck {
             poly,
             sum: Default::default(),
         }
     }
 
-    pub fn calculate_poly_sum(&mut self) {
-        self.sum = self.poly.element_wise_product().iter().sum()
+    pub fn calculate_poly_sum(poly: &ComposedMLE<F>) -> F {
+        poly.element_wise_product().iter().sum()
     }
 
-    pub fn prove(&self) -> (SumcheckProof<F>, Vec<F>) {
-        // send sum as bytes to the transcript
+    pub fn prove(&self) -> (ComposedSumcheckProof<F>, Vec<F>) {
         let mut transcript = FiatShamirTranscript::new();
 
         let mut current_poly: ComposedMLE<F> = self.poly.clone();
@@ -59,19 +57,18 @@ impl<F: PrimeField> Sumcheck<F> {
         }
 
         (
-            SumcheckProof {
+            ComposedSumcheckProof {
                 poly: self.poly.clone(),
-                sum: self.sum,
                 round_polys,
             },
             challenges,
         )
     }
 
-    pub fn verify(&self, proof: &SumcheckProof<F>) -> bool {
+    pub fn verify(&self, proof: &ComposedSumcheckProof<F>, sum: F) -> bool {
         let mut transcript = FiatShamirTranscript::new();
 
-        let mut claimed_sum = proof.sum;
+        let mut claimed_sum = sum;
         let mut challenges: Vec<F> = vec![];
 
         for round_poly in proof.round_polys.iter() {
@@ -115,23 +112,23 @@ mod tests {
     fn test_sum_calculation() {
         let mle1 = MLE::new(vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(3)]);
         let mle2 = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
-        let composedmle = ComposedMLE::new(vec![mle1, mle2]);
-        let mut prover = Sumcheck::new(composedmle);
-        prover.calculate_poly_sum();
-        assert_eq!(prover.sum, Fq::from(3));
+        let composedmle1 = ComposedMLE::new(vec![mle1, mle2]);
+        // let mut prover = ComposedSumcheck::new(composedmle1);
+        let sum = ComposedSumcheck::calculate_poly_sum(&composedmle1);
+        assert_eq!(sum, Fq::from(3));
 
         let mle1 = MLE::new(vec![Fq::from(3), Fq::from(3), Fq::from(5), Fq::from(5)]);
         let mle2 = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
-        let composedmle = ComposedMLE::new(vec![mle1, mle2]);
-        let mut prover = Sumcheck::new(composedmle);
-        prover.calculate_poly_sum(); // 5
-        assert_eq!(prover.sum, Fq::from(5));
+        let composedmle2 = ComposedMLE::new(vec![mle1, mle2]);
+        // let mut prover = ComposedSumcheck::new(composedmle2);
+        let sum2 = ComposedSumcheck::calculate_poly_sum(&composedmle2);
+        assert_eq!(sum2, Fq::from(5));
 
         let mle1 = MLE::new(vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(3)]);
-        let composedmle = ComposedMLE::new(vec![mle1]);
-        let mut prover = Sumcheck::new(composedmle);
-        prover.calculate_poly_sum(); // 6
-        assert_eq!(prover.sum, Fq::from(6));
+        let composedmle3 = ComposedMLE::new(vec![mle1]);
+        // let mut prover = ComposedSumcheck::new(composedmle3);
+        let sum3 = ComposedSumcheck::calculate_poly_sum(&composedmle3);
+        assert_eq!(sum3, Fq::from(6));
 
         let mle1 = MLE::new(vec![
             Fq::from(0),
@@ -143,10 +140,10 @@ mod tests {
             Fq::from(2),
             Fq::from(4),
         ]);
-        let composedmle = ComposedMLE::new(vec![mle1]);
-        let mut prover = Sumcheck::new(composedmle);
-        prover.calculate_poly_sum(); // 12
-        assert_eq!(prover.sum, Fq::from(12));
+        let composedmle4 = ComposedMLE::new(vec![mle1]);
+        // let mut prover = ComposedSumcheck::new(composedmle4);
+        let sum4 = ComposedSumcheck::calculate_poly_sum(&composedmle4);
+        assert_eq!(sum4, Fq::from(12));
     }
 
     #[test]
@@ -161,10 +158,10 @@ mod tests {
         let mle1 = MLE::new(vec![Fq::from(3), Fq::from(3), Fq::from(5), Fq::from(5)]);
         let mle2 = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
         let composedmle = ComposedMLE::new(vec![mle1, mle2]);
-        let mut sumcheck = Sumcheck::new(composedmle);
-        sumcheck.calculate_poly_sum();
+        let sumcheck = ComposedSumcheck::new(composedmle);
         let (proof, _challenges) = &sumcheck.prove();
-        let verifer: bool = sumcheck.verify(&proof);
+        let sum = ComposedSumcheck::calculate_poly_sum(&proof.poly);
+        let verifer: bool = sumcheck.verify(&proof, sum);
         assert_eq!(verifer, true);
     }
 
@@ -181,10 +178,10 @@ mod tests {
             Fq::from(11),
         ]);
         let composedmle = ComposedMLE::new(vec![mle]);
-        let mut sumcheck = Sumcheck::new(composedmle);
-        sumcheck.calculate_poly_sum();
+        let sumcheck = ComposedSumcheck::new(composedmle);
         let (proof, _challenges) = &sumcheck.prove();
-        let verifer: bool = sumcheck.verify(&proof);
+        let sum = ComposedSumcheck::calculate_poly_sum(&proof.poly);
+        let verifer: bool = sumcheck.verify(&proof, sum);
         assert_eq!(verifer, true);
     }
 
@@ -209,10 +206,10 @@ mod tests {
             Fq::from(0),
         ]);
         let composedmle = ComposedMLE::new(vec![mle]);
-        let mut sumcheck = Sumcheck::new(composedmle);
-        sumcheck.calculate_poly_sum();
+        let sumcheck = ComposedSumcheck::new(composedmle);
         let proof = sumcheck.prove();
-        let verifer = sumcheck.verify(&proof.0);
+        let sum = ComposedSumcheck::calculate_poly_sum(&proof.0.poly);
+        let verifer = sumcheck.verify(&proof.0, sum);
 
         assert_eq!(verifer, true);
     }
@@ -238,10 +235,10 @@ mod tests {
             Fq::from(10),
         ]);
         let composedmle = ComposedMLE::new(vec![mle]);
-        let mut sumcheck = Sumcheck::new(composedmle);
-        sumcheck.calculate_poly_sum();
+        let sumcheck = ComposedSumcheck::new(composedmle);
         let proof = sumcheck.prove();
-        let verifer = sumcheck.verify(&proof.0);
+        let sum = ComposedSumcheck::calculate_poly_sum(&proof.0.poly);
+        let verifer = sumcheck.verify(&proof.0, sum);
 
         assert_eq!(verifer, true);
     }

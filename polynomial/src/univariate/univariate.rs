@@ -1,5 +1,5 @@
 use crate::{interface::UnivariatePolynomialTrait, utils::lagrange_basis};
-use ark_ff::PrimeField;
+use ark_ff::{BigInteger, PrimeField};
 use std::{
     fmt::{Display, Formatter, Result},
     ops::{Add, Mul},
@@ -14,6 +14,21 @@ pub struct UnivariateMonomial<F: PrimeField> {
 #[derive(Debug, PartialEq)]
 pub struct UnivariatePolynomial<F: PrimeField> {
     pub monomial: Vec<UnivariateMonomial<F>>,
+}
+
+impl<F: PrimeField> UnivariatePolynomial<F> {
+    pub fn zero() -> Self {
+        UnivariatePolynomial { monomial: vec![] }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for p in self.monomial.iter() {
+            bytes.extend_from_slice(&p.coeff.into_bigint().to_bytes_be());
+            bytes.extend_from_slice(&p.pow.into_bigint().to_bytes_be());
+        }
+        bytes
+    }
 }
 
 impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
