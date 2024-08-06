@@ -21,7 +21,7 @@ impl<F: PrimeField> Sumcheck<F> {
             sum: Default::default(),
         }
     }
-    
+
     pub fn poly_sum(&mut self) {
         self.sum = self.poly.evaluations.iter().sum();
     }

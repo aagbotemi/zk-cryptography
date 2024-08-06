@@ -1,10 +1,10 @@
+use super::composed_sumcheck::ComposedSumcheck;
 use crate::utils::convert_round_poly_to_uni_poly_format;
 use ark_ff::PrimeField;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
 use polynomial::{
     interface::ComposedMLETrait, ComposedMLE, UnivariatePolynomial, UnivariatePolynomialTrait,
 };
-use super::composed_sumcheck::ComposedSumcheck;
 
 #[derive(Debug, Clone)]
 pub struct MultiComposedSumcheck<F: PrimeField> {
@@ -65,7 +65,7 @@ impl<F: PrimeField> MultiComposedSumcheck<F> {
             }
 
             transcript.commit(&round_poly.to_bytes());
-            // //get the random r
+            //get the random r
             let random_r: F = transcript.evaluate_challenge_into_field::<F>();
 
             let mut new_poly = Vec::new();
