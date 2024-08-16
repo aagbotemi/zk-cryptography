@@ -1,6 +1,5 @@
-use crate::interface::UnivariatePolynomialTrait;
-use ark_ff::PrimeField;
-use num_bigint::BigUint;
+use crate::{interface::UnivariatePolynomialTrait, utils::lagrange_basis};
+use ark_ff::{BigInteger, PrimeField};
 use std::{
     fmt::{Display, Formatter, Result},
     ops::{Add, Mul},
@@ -15,6 +14,21 @@ pub struct UnivariateMonomial<F: PrimeField> {
 #[derive(Debug, PartialEq)]
 pub struct UnivariatePolynomial<F: PrimeField> {
     pub monomial: Vec<UnivariateMonomial<F>>,
+}
+
+impl<F: PrimeField> UnivariatePolynomial<F> {
+    pub fn zero() -> Self {
+        UnivariatePolynomial { monomial: vec![] }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for p in self.monomial.iter() {
+            bytes.extend_from_slice(&p.coeff.into_bigint().to_bytes_be());
+            bytes.extend_from_slice(&p.pow.into_bigint().to_bytes_be());
+        }
+        bytes
+    }
 }
 
 impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
@@ -60,46 +74,28 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
     }
 
     fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F> {
-        let mut result_polynomial: UnivariatePolynomial<F> =
-            UnivariatePolynomial { monomial: vec![] };
-        let zero = F::zero();
-        let one = F::one();
-        let mut coefficients = vec![zero; points.len()];
-        let mut temp_polynomial = Vec::with_capacity(points.len());
+        let mut result: Vec<F> = vec![F::zero(); points.len()];
 
-        for (i, (x1, y1)) in points.iter().enumerate() {
-            temp_polynomial.clear();
-            temp_polynomial.push(one);
-            let mut denominator = one;
+        for (i, &(_, y_i)) in points.iter().enumerate() {
+            let l_i: Vec<F> = lagrange_basis(points, i);
+            let l_i: Vec<F> = l_i.into_iter().map(|coeff| coeff * y_i).collect();
 
-            for (j, (x2, _)) in points.iter().enumerate() {
-                if i != j {
-                    temp_polynomial.push(zero);
-                    for k in (1..temp_polynomial.len()).rev() {
-                        let xyz = x2.mul(temp_polynomial[k - 1]);
-                        temp_polynomial[k] -= xyz;
-                    }
-                    denominator *= x1.sub(x2);
-                }
-            }
-
-            let multiplier = y1.div(denominator);
-
-            for (result_coefficient, temp_coefficient) in
-                coefficients.iter_mut().zip(temp_polynomial.iter())
-            {
-                *result_coefficient += multiplier * temp_coefficient;
+            for (k, &coeff) in l_i.iter().enumerate() {
+                result[k] += coeff;
             }
         }
 
-        for i in 0..coefficients.len() {
-            let coeff = coefficients[i];
-            let power = F::from(BigUint::from(i));
-            let monomial = UnivariateMonomial { coeff, pow: power };
-            result_polynomial.monomial.push(monomial);
-        }
+        let monomial: Vec<UnivariateMonomial<F>> = result
+            .into_iter()
+            .enumerate()
+            .filter(|&(_, coeff)| coeff != F::zero())
+            .map(|(pow, coeff)| UnivariateMonomial {
+                coeff,
+                pow: F::from(pow as u64),
+            })
+            .collect();
 
-        result_polynomial
+        UnivariatePolynomial { monomial }
     }
 
     /// return the degree of a polynomial
@@ -218,11 +214,8 @@ impl<F: PrimeField> Display for UnivariatePolynomial<F> {
     }
 }
 
-#[cfg(test)]
 mod tests {
-    use crate::univariate::UnivariatePolynomialTrait;
-
-    use super::UnivariatePolynomial;
+    use super::*;
     use ark_ff::MontConfig;
     use ark_ff::{Fp64, MontBackend};
 
@@ -372,19 +365,83 @@ mod tests {
             (Fq::from(2), Fq::from(3)),
             (Fq::from(4), Fq::from(11)),
         ]);
+
         let interpolation_check = UnivariatePolynomial::new(vec![
-            Fq::from(1_u8),
+            Fq::from(3_u8),
             Fq::from(0_u8),
             Fq::from(15_u8),
             Fq::from(1_u8),
-            Fq::from(3_u8),
+            Fq::from(1_u8),
             Fq::from(2_u8),
         ]);
         assert_eq!(interpolation, interpolation_check);
 
         // to test the evaluation of the polynomial
         let evaluation = interpolation.evaluate(Fq::from(2_u8));
-        assert_eq!(evaluation, Fq::from(9_u8));
+        assert_eq!(evaluation, Fq::from(3_u8));
+    }
+
+    #[test]
+    fn test_polynomial_interpolation_1() {
+        // [(0, 0), (1, 2)] // 2x, where x = 2, 4
+        let interpolation1 = UnivariatePolynomial::interpolation(&vec![
+            (Fq::from(0_u8), Fq::from(0_u8)),
+            (Fq::from(1_u8), Fq::from(2_u8)),
+        ]);
+        let evaluation1 = interpolation1.evaluate(Fq::from(2_u8));
+        assert_eq!(evaluation1, Fq::from(4_u8));
+
+        // [(0, 5), (1, 7), (2, 13)] // 2x^2 + 5, where x = 2, 13
+        let interpolation2 = UnivariatePolynomial::interpolation(&vec![
+            (Fq::from(0_u8), Fq::from(5_u8)),
+            (Fq::from(1_u8), Fq::from(7_u8)),
+            (Fq::from(2_u8), Fq::from(13_u8)),
+        ]);
+        let evaluation2 = interpolation2.evaluate(Fq::from(2_u8));
+        assert_eq!(evaluation2, Fq::from(13_u8));
+
+        // [(0, 12), (1,48), (3,3150), (4,11772), (5,33452), (8,315020)] // 8x^5 + 12x^4 + 7x^3 + 1x^2 + 8x + 12, where x = 1, 48
+        let interpolation3 = UnivariatePolynomial::interpolation(&vec![
+            (Fq::from(0_u8), Fq::from(12_u8)),
+            (Fq::from(1_u8), Fq::from(48_u8)),
+            (Fq::from(3_u8), Fq::from(3150_u16)),
+            (Fq::from(4_u8), Fq::from(11772_u16)),
+            (Fq::from(5_u8), Fq::from(33452_u16)),
+            (Fq::from(8_u8), Fq::from(315020_u32)),
+        ]);
+        let evaluation3 = interpolation3.evaluate(Fq::from(1_u8));
+        assert_eq!(evaluation3, Fq::from(48_u8));
+
+        // [(0,0), (1,5), (2,14)], // 2x2 + 3x, where x = 2, 14
+        let interpolation4 = UnivariatePolynomial::interpolation(&vec![
+            (Fq::from(0_u8), Fq::from(0_u8)),
+            (Fq::from(1_u8), Fq::from(5_u8)),
+            (Fq::from(2_u8), Fq::from(14_u8)),
+        ]);
+        let evaluation4 = interpolation4.evaluate(Fq::from(2_u8));
+        assert_eq!(evaluation4, Fq::from(14_u8));
+
+        // [(1, 6), (2, 11), (3, 18), (4, 27), (5, 38)] // x^2 + 2x + 3, where x = 2, 11
+        let interpolation5 = UnivariatePolynomial::interpolation(&vec![
+            (Fq::from(1), Fq::from(6)),
+            (Fq::from(2), Fq::from(11)),
+            (Fq::from(3), Fq::from(18)),
+            (Fq::from(4), Fq::from(27)),
+            (Fq::from(5), Fq::from(38)),
+        ]);
+        assert_eq!(
+            interpolation5,
+            UnivariatePolynomial::new(vec![
+                Fq::from(3_u8),
+                Fq::from(0_u8),
+                Fq::from(2_u8),
+                Fq::from(1_u8),
+                Fq::from(1_u8),
+                Fq::from(2_u8),
+            ])
+        );
+        let evaluation5 = interpolation5.evaluate(Fq::from(2_u8));
+        assert_eq!(evaluation5, Fq::from(11_u8));
     }
 
     #[test]

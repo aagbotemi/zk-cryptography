@@ -7,14 +7,17 @@ use crate::{
     utils::{size_of_mle_n_var_at_each_layer, transform_label_to_binary_and_to_decimal},
 };
 
+#[derive(Debug)]
 pub struct GKRCircuitLayer {
     pub layer: Vec<Gate>,
 }
 
+#[derive(Debug)]
 pub struct GKRCircuit {
     pub layers: Vec<GKRCircuitLayer>,
 }
 
+#[derive(Debug)]
 pub struct GKRCircuitEvaluation<F> {
     pub layers: Vec<Vec<F>>,
 }
@@ -38,7 +41,7 @@ impl GKRCircuit {
 }
 
 impl GKRCircuit {
-    pub fn evaluate<F: PrimeField>(&self, input: &[F]) -> GKRCircuitEvaluation<F>
+    pub fn evaluation<F: PrimeField>(&self, input: &[F]) -> GKRCircuitEvaluation<F>
     where
         F: Add<Output = F> + Mul<Output = F> + Copy,
     {
@@ -65,7 +68,7 @@ impl GKRCircuit {
         GKRCircuitEvaluation { layers }
     }
 
-    pub fn add_mul_mle<F: PrimeField>(&self, layer_index: usize) -> (MLE<F>, MLE<F>) {
+    pub fn add_mult_mle<F: PrimeField>(&self, layer_index: usize) -> (MLE<F>, MLE<F>) {
         let layer = &self.layers[layer_index];
         let n_vars = size_of_mle_n_var_at_each_layer(layer_index);
 
@@ -129,7 +132,7 @@ mod tests {
             Fr::from(4u32),
             Fr::from(5u32),
         ];
-        let evaluation = circuit.evaluate(&input);
+        let evaluation = circuit.evaluation(&input);
         let expected_output = vec![
             vec![Fr::from(100u32)],
             vec![Fr::from(5u32), Fr::from(20u32)],
@@ -159,7 +162,7 @@ mod tests {
         ]);
 
         let circuit = GKRCircuit::new(vec![layer_0, layer_1]);
-        let evaluation = circuit.evaluate(&[
+        let evaluation = circuit.evaluation(&[
             Fr::from(3u32),
             Fr::from(2u32),
             Fr::from(3u32),
@@ -203,7 +206,7 @@ mod tests {
 
         let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
 
-        let evaluation = circuit.evaluate(&[
+        let evaluation = circuit.evaluation(&[
             Fr::from(2u32),
             Fr::from(3u32),
             Fr::from(1u32),
@@ -256,7 +259,7 @@ mod tests {
 
         let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
 
-        let (add_mle, mul_mle) = circuit.add_mul_mle::<Fr>(0);
+        let (add_mle, mul_mle) = circuit.add_mult_mle::<Fr>(0);
 
         // there is no mul gate in layer 0, the mul mle should be zero
         assert_eq!(mul_mle.is_zero(), true);
@@ -305,7 +308,7 @@ mod tests {
 
         let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
 
-        let (add_mle, mul_mle) = circuit.add_mul_mle::<Fr>(1);
+        let (add_mle, mul_mle) = circuit.add_mult_mle::<Fr>(1);
 
         // there is one mul gate in layer 0, the mul mle should be non-zero
         assert_eq!(mul_mle.is_zero(), false);
@@ -441,7 +444,7 @@ mod tests {
 
         let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
 
-        let (add_mle, mul_mle) = circuit.add_mul_mle::<Fr>(2);
+        let (add_mle, mul_mle) = circuit.add_mult_mle::<Fr>(2);
 
         // there is one mul gate in layer 0, the mul mle should be non-zero
         assert_eq!(mul_mle.is_zero(), false);

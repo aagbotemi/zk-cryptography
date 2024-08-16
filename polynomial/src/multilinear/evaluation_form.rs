@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign};
+use std::ops::{Add, AddAssign, Mul};
 
 use crate::{interface::MLETrait, utils::pick_pairs_with_random_index};
 use ark_ff::{BigInteger, PrimeField};
@@ -10,7 +10,33 @@ pub struct MLE<F: PrimeField> {
 }
 
 impl<F: PrimeField> MLE<F> {
-    pub fn evaluations_to_bytes(&self) -> Vec<u8> {
+    pub fn add_distinct(&self, rhs: &Self) -> Self {
+        let mut new_evaluations = Vec::new();
+        let repeat_sequence = rhs.evaluations.len();
+
+        for i in 0..self.evaluations.len() {
+            for j in 0..repeat_sequence {
+                new_evaluations.push(self.evaluations[i] + rhs.evaluations[j]);
+            }
+        }
+
+        Self::new(new_evaluations)
+    }
+
+    pub fn mul_distinct(&self, rhs: &Self) -> Self {
+        let mut new_evaluations = Vec::new();
+        let repeat_sequence = rhs.evaluations.len();
+
+        for i in 0..self.evaluations.len() {
+            for j in 0..repeat_sequence {
+                new_evaluations.push(self.evaluations[i] * rhs.evaluations[j]);
+            }
+        }
+
+        Self::new(new_evaluations)
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
         for evaluation in &self.evaluations {
@@ -18,6 +44,10 @@ impl<F: PrimeField> MLE<F> {
         }
 
         bytes
+    }
+
+    pub fn additive_identity(num_vars: usize) -> Self {
+        Self::new(vec![F::zero(); 1 << num_vars])
     }
 
     pub fn split_poly_into_two_and_sum_each_part(&mut self) -> MLE<F> {
@@ -30,6 +60,12 @@ impl<F: PrimeField> MLE<F> {
 
     pub fn is_zero(&self) -> bool {
         self.evaluations.iter().all(|&eval| eval.is_zero())
+    }
+
+    pub fn sum_over_the_boolean_hypercube(&self) -> F {
+        self.evaluations
+            .iter()
+            .fold(F::zero(), |acc, val| acc + val)
     }
 }
 
@@ -64,11 +100,28 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
             result.push(res_y);
         }
 
-        // println!("result={result:?}");
         Self {
             n_vars: self.n_vars - 1,
             evaluations: result,
         }
+    }
+
+    fn partial_evaluations(&self, points: &[F], variable_indices: &Vec<usize>) -> Self {
+        let mut evaluation = self.clone();
+
+        if points.len() != variable_indices.len() {
+            panic!(
+                "The length of evaluation_points and variable_indices should be the same: {}, {}",
+                points.len(),
+                variable_indices.len()
+            );
+        }
+
+        for i in 0..points.len() {
+            evaluation = evaluation.partial_evaluation(&points[i], &variable_indices[i]);
+        }
+
+        evaluation
     }
 
     /// full evaluation of a polynomial - evaluation form
@@ -85,16 +138,6 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
         }
 
         eval_result.evaluations[0]
-    }
-
-    fn additive_identity(num_vars: usize) -> Self {
-        Self::new(vec![F::zero(); 1 << num_vars])
-    }
-
-    fn sum_over_the_boolean_hypercube(&self) -> F {
-        self.evaluations
-            .iter()
-            .fold(F::zero(), |acc, val| acc + val)
     }
 }
 
@@ -116,6 +159,7 @@ impl<F: PrimeField> Add for MLE<F> {
     }
 }
 
+
 impl<F: PrimeField> AddAssign for MLE<F> {
     fn add_assign(&mut self, other: Self) {
         // TODO: come up with an algo for handling the case where the number of variables in the two polynomials are not the same
@@ -128,6 +172,28 @@ impl<F: PrimeField> AddAssign for MLE<F> {
         }
     }
 }
+
+
+impl<F: PrimeField> Mul<F> for MLE<F> {
+    type Output = Self;
+
+    fn mul(self, rhs: F) -> Self::Output {
+        let lhs = self.evaluations;
+        let mut res = vec![];
+
+        for i in 0..lhs.len() {
+            res.push(lhs[i] * rhs)
+        }
+
+        Self {
+            n_vars: self.n_vars,
+            evaluations: res,
+        }
+    }
+
+
+}
+
 
 #[cfg(test)]
 mod tests {

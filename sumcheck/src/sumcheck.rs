@@ -22,7 +22,7 @@ impl<F: PrimeField> Sumcheck<F> {
         }
     }
 
-    pub fn calculate_poly_sum(&mut self) {
+    pub fn poly_sum(&mut self) {
         self.sum = self.poly.evaluations.iter().sum();
     }
 
@@ -39,11 +39,11 @@ impl<F: PrimeField> Sumcheck<F> {
 
         for _ in 0..self.poly.n_vars {
             let uni_poly = current_poly.split_poly_into_two_and_sum_each_part();
-            transcript.commit(&uni_poly.evaluations_to_bytes());
+            transcript.commit(&uni_poly.to_bytes());
             uni_polys.push(uni_poly);
 
             //get the random r
-            let random_r: F = transcript.evaluate_challenge_into_field::<F>();
+            let random_r = transcript.evaluate_challenge_into_field::<F>();
             challenges.push(random_r);
 
             // update polynomial
@@ -81,7 +81,7 @@ impl<F: PrimeField> Sumcheck<F> {
             }
 
             // Commit the univariate polynomial to the transcript
-            transcript.commit(&uni_poly.evaluations_to_bytes());
+            transcript.commit(&uni_poly.to_bytes());
 
             // Generate the challenge for this round
             let challenge: F = transcript.evaluate_challenge_into_field::<F>();
@@ -120,7 +120,7 @@ mod tests {
             Fq::from(4),
         ]);
         let mut prover = Sumcheck::new(poly);
-        prover.calculate_poly_sum();
+        prover.poly_sum();
         assert_eq!(prover.sum, Fq::from(12));
     }
 
@@ -137,7 +137,7 @@ mod tests {
             Fq::from(11),
         ]);
         let mut sumcheck = Sumcheck::new(poly);
-        sumcheck.calculate_poly_sum();
+        sumcheck.poly_sum();
         let (proof, _challenges) = &sumcheck.prove();
         let verifer: bool = sumcheck.verify(&proof);
 
@@ -165,7 +165,7 @@ mod tests {
             Fq::from(0),
         ]);
         let mut sumcheck = Sumcheck::new(poly);
-        sumcheck.calculate_poly_sum();
+        sumcheck.poly_sum();
         let proof = sumcheck.prove();
         let verifer = sumcheck.verify(&proof.0);
 
@@ -193,7 +193,7 @@ mod tests {
             Fq::from(10),
         ]);
         let mut sumcheck = Sumcheck::new(poly);
-        sumcheck.calculate_poly_sum();
+        sumcheck.poly_sum();
         let proof = sumcheck.prove();
         let verifer = sumcheck.verify(&proof.0);
 

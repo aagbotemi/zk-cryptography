@@ -27,4 +27,14 @@ impl FiatShamirTranscriptTrait for FiatShamirTranscript {
     fn evaluate_challenge_into_field<F: PrimeField>(&mut self) -> F {
         F::from_be_bytes_mod_order(&self.challenge())
     }
+
+    fn evaluate_n_challenge_into_field<F: PrimeField>(&mut self, n: &usize) -> Vec<F> {
+        let mut result = Vec::new();
+
+        for _ in 0..*n {
+            result.push(F::from_be_bytes_mod_order(&self.challenge()));
+        }
+
+        result
+    }
 }

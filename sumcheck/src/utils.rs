@@ -41,6 +41,22 @@ pub fn skip_first_and_sum_all<'a, F: PrimeField>(current_poly: MLE<F>) -> MLE<F>
     bh_sum
 }
 
+pub fn convert_round_poly_to_uni_poly_format<F: PrimeField>(round_poly: &Vec<F>) -> Vec<(F, F)> {
+    round_poly
+        .iter()
+        .enumerate()
+        .map(|(i, val)| (F::from(i as u64), *val))
+        .collect()
+}
+
+pub fn vec_to_bytes<F: PrimeField>(poly: &Vec<F>) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    for p in poly {
+        bytes.extend_from_slice(&p.into_bigint().to_bytes_be());
+    }
+    bytes
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,5 +143,20 @@ mod tests {
 
         assert_eq!(evaluation1, expected_polynomial1);
         assert_eq!(evaluation2, expected_polynomial2);
+    }
+
+    #[test]
+    fn test_convert_round_poly_to_uni_poly_format() {
+        let point = vec![Fq::from(1), Fq::from(1), Fq::from(1), Fq::from(1)];
+        let uni_poly_points = convert_round_poly_to_uni_poly_format(&point);
+        assert_eq!(
+            uni_poly_points,
+            [
+                (Fq::from(0), Fq::from(1)),
+                (Fq::from(1), Fq::from(1)),
+                (Fq::from(2), Fq::from(1)),
+                (Fq::from(3), Fq::from(1))
+            ]
+        )
     }
 }
