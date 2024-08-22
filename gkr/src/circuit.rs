@@ -4,7 +4,10 @@ use std::ops::{Add, Mul};
 
 use crate::{
     gate::{Gate, GateType},
-    utils::{size_of_mle_n_var_at_each_layer, transform_label_to_binary_and_to_decimal},
+    utils::{
+        bit_count_for_n_elem, size_of_mle_n_var_at_each_layer,
+        transform_label_to_binary_and_to_decimal,
+    },
 };
 
 #[derive(Debug)]
@@ -69,6 +72,7 @@ impl GKRCircuit {
     }
 
     pub fn add_mult_mle<F: PrimeField>(&self, layer_index: usize) -> (MLE<F>, MLE<F>) {
+        // dbg!("constructing for layer = {}", layer_index);
         let layer = &self.layers[layer_index];
         let n_vars = size_of_mle_n_var_at_each_layer(layer_index);
 
@@ -79,19 +83,23 @@ impl GKRCircuit {
             match gate.gate_type {
                 GateType::Add => {
                     let gate_decimal = transform_label_to_binary_and_to_decimal(
+                        layer_index,
                         gate_index,
                         gate.inputs[0],
                         gate.inputs[1],
                     );
 
+                    dbg!("add gate_decimal = {}", gate_decimal);
                     add_evaluations[gate_decimal] = F::one()
                 }
                 GateType::Mul => {
                     let gate_decimal = transform_label_to_binary_and_to_decimal(
+                        layer_index,
                         gate_index,
                         gate.inputs[0],
                         gate.inputs[1],
                     );
+                    dbg!("mul gate_decimal = {}", gate_decimal);
                     mul_evaluations[gate_decimal] = F::one();
                 }
             }

@@ -122,7 +122,7 @@ impl MultiComposedSumcheckProver {
             round_polys.push(round_poly);
         }
 
-        println!("challenges_at_prove={:?}", challenges);
+        // println!("challenges_at_prove={:?}", challenges);
 
         Ok((
             ComposedSumcheckProof {
@@ -133,6 +133,14 @@ impl MultiComposedSumcheckProver {
             challenges,
         ))
     }
+}
+
+pub fn sum_over_boolean_hypercube<F: PrimeField>(poly: &[ComposedMLE<F>]) -> F {
+    let evaluation: Vec<Vec<F>> = poly.iter().map(|f| f.element_wise_product()).collect();
+
+    (0..evaluation[0].len())
+        .map(|i| evaluation.iter().map(|v| v[i]).sum::<F>())
+        .sum()
 }
 
 pub struct MultiComposedSumcheckVerifier {}
@@ -189,7 +197,7 @@ impl MultiComposedSumcheckVerifier {
             // update the sum
             claimed_sum = round_poly.evaluate(challenge);
         }
-        println!("challenges_at_verify={:?}", challenges);
+        // println!("challenges_at_verify={:?}", challenges);
 
         Ok(SubClaim {
             sum: claimed_sum,
@@ -213,6 +221,28 @@ mod tests {
     #[generator = "3"]
     struct FqConfig;
     type Fq = Fp64<MontBackend<FqConfig, 1>>;
+
+    #[test]
+    fn test_sum_over_the_boolean_hypercube() {
+        let val = vec![
+            Fq::from(1),
+            Fq::from(2),
+            Fq::from(3),
+            Fq::from(4),
+            Fq::from(5),
+            Fq::from(6),
+            Fq::from(7),
+            Fq::from(8),
+        ];
+
+        let poly = ComposedMLE::new([MLE::new(val)].to_vec());
+
+        let res = sum_over_boolean_hypercube(&[poly]);
+        assert!(
+            res == Fq::from(36),
+            "Incorrect sum over the boolean hypercube"
+        );
+    }
 
     #[test]
     fn test_sum_calculation() {
@@ -311,13 +341,21 @@ mod tests {
             Fq::from(6),
         ]);
 
+        let add_partial_evaluation = add_i.partial_evaluation(&Fq::from(2), &0);
+        let add_partial_evaluation_len = add_partial_evaluation.evaluations.len();
+
+        let mul_partial_evaluation = mul_i.partial_evaluation(&Fq::from(2), &0);
+        let mul_partial_evaluation_len = mul_partial_evaluation.evaluations.len();
+
         let lhs_poly = ComposedMLE::new(vec![
-            add_i.partial_evaluation(&Fq::from(2), &0),
-            w_b.add_distinct(&w_c),
+            add_partial_evaluation,
+            w_b.add_distinct(&w_c)
+                .new_padded(&add_partial_evaluation_len),
         ]);
         let rhs_poly = ComposedMLE::new(vec![
             mul_i.partial_evaluation(&Fq::from(2), &0),
-            w_b.mul_distinct(&w_c),
+            w_b.mul_distinct(&w_c)
+                .new_padded(&mul_partial_evaluation_len),
         ]);
 
         let multi_composed = vec![lhs_poly, rhs_poly];

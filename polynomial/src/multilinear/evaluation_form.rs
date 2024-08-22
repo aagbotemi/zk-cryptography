@@ -10,14 +10,30 @@ pub struct MLE<F: PrimeField> {
 }
 
 impl<F: PrimeField> MLE<F> {
+    // Add a new function that pads the evaluations
+    pub fn new_padded(self, length: &usize) -> Self {
+        // Pad the evaluations vector with zeros
+        let mut eval = self.evaluations;
+        eval.resize(*length, F::zero());
+        let n_vars = (*length as f64).log2() as usize;
+
+        assert_eq!(
+            1 << n_vars,
+            eval.len(),
+            "Number of evaluations must be a power of 2"
+        );
+
+        Self {
+            n_vars,
+            evaluations: eval,
+        }
+    }
+
     pub fn add_distinct(&self, rhs: &Self) -> Self {
         let mut new_evaluations = Vec::new();
-        let repeat_sequence = rhs.evaluations.len();
 
         for i in 0..self.evaluations.len() {
-            for j in 0..repeat_sequence {
-                new_evaluations.push(self.evaluations[i] + rhs.evaluations[j]);
-            }
+            new_evaluations.push(self.evaluations[i] + rhs.evaluations[i]);
         }
 
         Self::new(new_evaluations)
@@ -25,12 +41,9 @@ impl<F: PrimeField> MLE<F> {
 
     pub fn mul_distinct(&self, rhs: &Self) -> Self {
         let mut new_evaluations = Vec::new();
-        let repeat_sequence = rhs.evaluations.len();
 
         for i in 0..self.evaluations.len() {
-            for j in 0..repeat_sequence {
-                new_evaluations.push(self.evaluations[i] * rhs.evaluations[j]);
-            }
+            new_evaluations.push(self.evaluations[i] * rhs.evaluations[i]);
         }
 
         Self::new(new_evaluations)
@@ -159,7 +172,6 @@ impl<F: PrimeField> Add for MLE<F> {
     }
 }
 
-
 impl<F: PrimeField> AddAssign for MLE<F> {
     fn add_assign(&mut self, other: Self) {
         // TODO: come up with an algo for handling the case where the number of variables in the two polynomials are not the same
@@ -172,7 +184,6 @@ impl<F: PrimeField> AddAssign for MLE<F> {
         }
     }
 }
-
 
 impl<F: PrimeField> Mul<F> for MLE<F> {
     type Output = Self;
@@ -190,10 +201,7 @@ impl<F: PrimeField> Mul<F> for MLE<F> {
             evaluations: res,
         }
     }
-
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -207,6 +215,21 @@ mod tests {
     #[generator = "3"]
     struct FqConfig;
     type Fq = Fp64<MontBackend<FqConfig, 1>>;
+
+    #[test]
+    fn test_add_mul_distinct() {
+        let polynomial = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(2), Fq::from(2)]);
+        let polynomial2 = MLE::new(vec![Fq::from(0), Fq::from(3), Fq::from(0), Fq::from(3)]);
+
+        let new_add_poly = MLE::new(vec![Fq::from(0), Fq::from(3), Fq::from(2), Fq::from(5)]);
+        let new_mul_poly = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(6)]);
+
+        let add_distinct = polynomial.add_distinct(&polynomial2);
+        let mul_distinct = polynomial.mul_distinct(&polynomial2);
+
+        assert_eq!(add_distinct, new_add_poly);
+        assert_eq!(mul_distinct, new_mul_poly);
+    }
 
     #[test]
     fn test_partial_evaluation_1() {
