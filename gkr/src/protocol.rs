@@ -80,9 +80,9 @@ impl GKRProtocol {
             let wb = w_i_mle.clone();
             let wc = w_i_mle;
 
-            let wb_add_wc = wb.add_distinct(&wc).new_padded(&add_rb_bc_len);
-            let wb_mul_wc = wb.mul_distinct(&wc).new_padded(&mul_rb_bc_len);
-
+            let wb_add_wc = wb.add_distinct(&wc);
+            let wb_mul_wc = wb.mul_distinct(&wc);
+            
             // alpha * add(r_b, b, c) + beta * add(r_c, b, c)
             let add_alpha_beta = (add_rb_bc * alpha) + (add_rc_bc * beta);
             // alpha * mul(r_b, b, c) + beta * mult(r_c, b, c)

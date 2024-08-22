@@ -11,29 +11,32 @@ pub struct MLE<F: PrimeField> {
 
 impl<F: PrimeField> MLE<F> {
     // Add a new function that pads the evaluations
-    pub fn new_padded(self, length: &usize) -> Self {
-        // Pad the evaluations vector with zeros
-        let mut eval = self.evaluations;
-        eval.resize(*length, F::zero());
-        let n_vars = (*length as f64).log2() as usize;
+    // pub fn new_padded(self, length: &usize) -> Self {
+    //     // Pad the evaluations vector with zeros
+    //     let mut eval = self.evaluations;
+    //     eval.resize(*length, F::zero());
+    //     let n_vars = (*length as f64).log2() as usize;
 
-        assert_eq!(
-            1 << n_vars,
-            eval.len(),
-            "Number of evaluations must be a power of 2"
-        );
+    //     assert_eq!(
+    //         1 << n_vars,
+    //         eval.len(),
+    //         "Number of evaluations must be a power of 2"
+    //     );
 
-        Self {
-            n_vars,
-            evaluations: eval,
-        }
-    }
+    //     Self {
+    //         n_vars,
+    //         evaluations: eval,
+    //     }
+    // }
 
     pub fn add_distinct(&self, rhs: &Self) -> Self {
         let mut new_evaluations = Vec::new();
+        let repeat_sequence = rhs.evaluations.len();
 
         for i in 0..self.evaluations.len() {
-            new_evaluations.push(self.evaluations[i] + rhs.evaluations[i]);
+            for j in 0..repeat_sequence {
+                new_evaluations.push(self.evaluations[i] + rhs.evaluations[j]);
+            }
         }
 
         Self::new(new_evaluations)
@@ -41,9 +44,12 @@ impl<F: PrimeField> MLE<F> {
 
     pub fn mul_distinct(&self, rhs: &Self) -> Self {
         let mut new_evaluations = Vec::new();
+        let repeat_sequence = rhs.evaluations.len();
 
         for i in 0..self.evaluations.len() {
-            new_evaluations.push(self.evaluations[i] * rhs.evaluations[i]);
+            for j in 0..repeat_sequence {
+                new_evaluations.push(self.evaluations[i] * rhs.evaluations[j]);
+            }
         }
 
         Self::new(new_evaluations)

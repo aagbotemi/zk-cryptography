@@ -349,13 +349,11 @@ mod tests {
 
         let lhs_poly = ComposedMLE::new(vec![
             add_partial_evaluation,
-            w_b.add_distinct(&w_c)
-                .new_padded(&add_partial_evaluation_len),
+            w_b.add_distinct(&w_c),
         ]);
         let rhs_poly = ComposedMLE::new(vec![
             mul_i.partial_evaluation(&Fq::from(2), &0),
-            w_b.mul_distinct(&w_c)
-                .new_padded(&mul_partial_evaluation_len),
+            w_b.mul_distinct(&w_c),
         ]);
 
         let multi_composed = vec![lhs_poly, rhs_poly];

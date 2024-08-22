@@ -103,8 +103,8 @@ pub fn generate_layer_one_prove_sumcheck<F: PrimeField>(
     let wb = w_1_mle.clone();
     let wc = w_1_mle;
 
-    let wb_add_wc = wb.add_distinct(&wc).new_padded(&add_rbc_len);
-    let wb_mul_wc = wb.mul_distinct(&wc).new_padded(&mul_rbc_len);
+    let wb_add_wc = wb.add_distinct(&wc);
+    let wb_mul_wc = wb.mul_distinct(&wc);
 
     let add_fbc = ComposedMLE::new(vec![add_rbc, wb_add_wc]);
     let mul_fbc = ComposedMLE::new(vec![mul_rbc, wb_mul_wc]);
