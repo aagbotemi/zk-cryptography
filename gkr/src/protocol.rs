@@ -1,9 +1,8 @@
 use ark_ff::PrimeField;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
-use polynomial::{ComposedMLE, MLETrait, MLE};
+use polynomial::{ComposedMultilinear, Multilinear, MultilinearTrait};
 use sumcheck::composed::multi_composed_sumcheck::{
-    ComposedSumcheckProof, MultiComposedSumcheckProver,
-    MultiComposedSumcheckVerifier,
+    ComposedSumcheckProof, MultiComposedSumcheckProver, MultiComposedSumcheckVerifier,
 };
 
 use crate::{
@@ -13,9 +12,9 @@ use crate::{
 
 pub struct GKRProof<F: PrimeField> {
     sumcheck_proofs: Vec<ComposedSumcheckProof<F>>,
-    wb_s: Vec<F>,    // w_mle for layer one onward for rb
-    wc_s: Vec<F>,    // w_mle for layer one onward for rc
-    w_0_mle: MLE<F>, // w_mle for layer
+    wb_s: Vec<F>,            // w_mle for layer one onward for rb
+    wc_s: Vec<F>,            // w_mle for layer one onward for rc
+    w_0_mle: Multilinear<F>, // w_mle for layer
 }
 
 pub struct GKRProtocol {}
@@ -27,11 +26,6 @@ impl GKRProtocol {
         let mut sumcheck_proofs: Vec<ComposedSumcheckProof<F>> = Vec::new();
         let mut wb_s: Vec<F> = Vec::new();
         let mut wc_s: Vec<F> = Vec::new();
-        let mut r_b: Vec<F> = Vec::new();
-        let mut r_c: Vec<F> = Vec::new();
-
-        let mut alpha: F = F::zero();
-        let mut beta: F = F::zero();
 
         let circuit_eval = circuit.evaluation(input);
         let mut circuit_eval_layer_zero_pad = circuit_eval.layers[0].clone();
@@ -59,10 +53,11 @@ impl GKRProtocol {
         );
 
         claimed_sum = claimed;
-        alpha = alph;
-        beta = bta;
-        r_b = rb;
-        r_c = rc;
+
+        let mut alpha: F = alph;
+        let mut beta: F = bta;
+        let mut r_b: Vec<F> = rb;
+        let mut r_c: Vec<F> = rc;
 
         for layer_index in 2..circuit_eval.layers.len() {
             let (add_mle, mult_mle) = circuit.add_mult_mle::<F>(layer_index - 1);
@@ -74,29 +69,19 @@ impl GKRProtocol {
             let mul_rc_bc = mult_mle.partial_evaluations(&r_c, &vec![0; r_b.len()]);
             let w_i_mle = w_mle(circuit_eval.layers[layer_index].to_vec());
 
-            let add_rb_bc_len = add_rb_bc.evaluations.len();
-            let mul_rb_bc_len = mul_rb_bc.evaluations.len();
-
             let wb = w_i_mle.clone();
             let wc = w_i_mle;
 
             let wb_add_wc = wb.add_distinct(&wc);
             let wb_mul_wc = wb.mul_distinct(&wc);
-            
+
             // alpha * add(r_b, b, c) + beta * add(r_c, b, c)
             let add_alpha_beta = (add_rb_bc * alpha) + (add_rc_bc * beta);
             // alpha * mul(r_b, b, c) + beta * mult(r_c, b, c)
             let mul_alpha_beta = (mul_rb_bc * alpha) + (mul_rc_bc * beta);
 
-            let fbc_add_alpha_beta = ComposedMLE::new(vec![add_alpha_beta, wb_add_wc]);
-            let fbc_mul_alpha_beta = ComposedMLE::new(vec![mul_alpha_beta, wb_mul_wc]);
-
-            // let sobh = sum_over_boolean_hypercube(&[
-            //     fbc_add_alpha_beta.clone(),
-            //     fbc_mul_alpha_beta.clone(),
-            // ]);
-            // dbg!(&sobh);
-            // dbg!(&claimed_sum);
+            let fbc_add_alpha_beta = ComposedMultilinear::new(vec![add_alpha_beta, wb_add_wc]);
+            let fbc_mul_alpha_beta = ComposedMultilinear::new(vec![mul_alpha_beta, wb_mul_wc]);
 
             let (sumcheck_proof, challenges) = MultiComposedSumcheckProver::prove_partial(
                 &vec![fbc_add_alpha_beta, fbc_mul_alpha_beta],
@@ -105,7 +90,6 @@ impl GKRProtocol {
             .unwrap();
 
             transcript.commit(&sumcheck_proof.to_bytes());
-            // println!("sumcheck_proof={:?}", &sumcheck_proof.sum);
             sumcheck_proofs.push(sumcheck_proof);
 
             let (b, c) = challenges.split_at(&challenges.len() / 2);
@@ -298,7 +282,7 @@ mod tests {
 
         let evaluation = circuit.evaluation(&input);
 
-        // assert_eq!(evaluation.layers[0][0], Fq::from(224u32));
+        assert_eq!(evaluation.layers[0][0], Fq::from(224u32));
 
         let proof = GKRProtocol::prove(&circuit, &input.to_vec());
 

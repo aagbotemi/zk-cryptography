@@ -1,33 +1,29 @@
+use crate::{interface::MultilinearTrait, utils::pick_pairs_with_random_index};
+use ark_ff::{BigInteger, PrimeField};
 use std::ops::{Add, AddAssign, Mul};
 
-use crate::{interface::MLETrait, utils::pick_pairs_with_random_index};
-use ark_ff::{BigInteger, PrimeField};
-
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLE<F: PrimeField> {
+pub struct Multilinear<F: PrimeField> {
     pub n_vars: usize,
     pub evaluations: Vec<F>,
 }
 
-impl<F: PrimeField> MLE<F> {
-    // Add a new function that pads the evaluations
-    // pub fn new_padded(self, length: &usize) -> Self {
-    //     // Pad the evaluations vector with zeros
-    //     let mut eval = self.evaluations;
-    //     eval.resize(*length, F::zero());
-    //     let n_vars = (*length as f64).log2() as usize;
+impl<F: PrimeField> Multilinear<F> {
+    pub fn new(evaluations: Vec<F>) -> Self {
+        let num_evaluations = evaluations.len();
+        let n_vars = (num_evaluations as f64).log2() as usize;
 
-    //     assert_eq!(
-    //         1 << n_vars,
-    //         eval.len(),
-    //         "Number of evaluations must be a power of 2"
-    //     );
+        assert_eq!(
+            1 << n_vars,
+            num_evaluations,
+            "Number of evaluations must be a power of 2"
+        );
 
-    //     Self {
-    //         n_vars,
-    //         evaluations: eval,
-    //     }
-    // }
+        Self {
+            n_vars,
+            evaluations,
+        }
+    }
 
     pub fn add_distinct(&self, rhs: &Self) -> Self {
         let mut new_evaluations = Vec::new();
@@ -69,7 +65,7 @@ impl<F: PrimeField> MLE<F> {
         Self::new(vec![F::zero(); 1 << num_vars])
     }
 
-    pub fn split_poly_into_two_and_sum_each_part(&mut self) -> MLE<F> {
+    pub fn split_poly_into_two_and_sum_each_part(&mut self) -> Multilinear<F> {
         let mid_point: usize = self.evaluations.len() / 2;
         let first_half: F = self.evaluations[..mid_point].iter().sum();
         let second_half: F = self.evaluations[mid_point..].iter().sum();
@@ -88,23 +84,7 @@ impl<F: PrimeField> MLE<F> {
     }
 }
 
-impl<F: PrimeField> MLETrait<F> for MLE<F> {
-    fn new(evaluations: Vec<F>) -> Self {
-        let num_evaluations = evaluations.len();
-        let n_vars = (num_evaluations as f64).log2() as usize;
-
-        assert_eq!(
-            1 << n_vars,
-            num_evaluations,
-            "Number of evaluations must be a power of 2"
-        );
-
-        Self {
-            n_vars,
-            evaluations,
-        }
-    }
-
+impl<F: PrimeField> MultilinearTrait<F> for Multilinear<F> {
     fn partial_evaluation(&self, eval_point: &F, variable_index: &usize) -> Self {
         let new_evaluation: &Vec<F> = &self.evaluations;
 
@@ -151,7 +131,7 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
             "Number of evaluation points must match the number of variables"
         );
 
-        let mut eval_result: MLE<F> = self.clone();
+        let mut eval_result: Multilinear<F> = self.clone();
         for i in 0..evaluation_points.len() {
             eval_result = eval_result.partial_evaluation(&evaluation_points[i], &0);
         }
@@ -160,7 +140,7 @@ impl<F: PrimeField> MLETrait<F> for MLE<F> {
     }
 }
 
-impl<F: PrimeField> Add for MLE<F> {
+impl<F: PrimeField> Add for Multilinear<F> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -178,7 +158,7 @@ impl<F: PrimeField> Add for MLE<F> {
     }
 }
 
-impl<F: PrimeField> AddAssign for MLE<F> {
+impl<F: PrimeField> AddAssign for Multilinear<F> {
     fn add_assign(&mut self, other: Self) {
         // TODO: come up with an algo for handling the case where the number of variables in the two polynomials are not the same
         // if self.n_vars != other.n_vars {
@@ -191,7 +171,7 @@ impl<F: PrimeField> AddAssign for MLE<F> {
     }
 }
 
-impl<F: PrimeField> Mul<F> for MLE<F> {
+impl<F: PrimeField> Mul<F> for Multilinear<F> {
     type Output = Self;
 
     fn mul(self, rhs: F) -> Self::Output {
@@ -211,8 +191,8 @@ impl<F: PrimeField> Mul<F> for MLE<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::interface::MLETrait;
-    use crate::multilinear::evaluation_form::MLE;
+    use crate::interface::MultilinearTrait;
+    use crate::multilinear::evaluation_form::Multilinear;
     use ark_ff::MontConfig;
     use ark_ff::{Fp64, MontBackend};
 
@@ -224,11 +204,46 @@ mod tests {
 
     #[test]
     fn test_add_mul_distinct() {
-        let polynomial = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(2), Fq::from(2)]);
-        let polynomial2 = MLE::new(vec![Fq::from(0), Fq::from(3), Fq::from(0), Fq::from(3)]);
+        let polynomial = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(2), Fq::from(2)]);
+        let polynomial2 =
+            Multilinear::new(vec![Fq::from(0), Fq::from(3), Fq::from(0), Fq::from(3)]);
 
-        let new_add_poly = MLE::new(vec![Fq::from(0), Fq::from(3), Fq::from(2), Fq::from(5)]);
-        let new_mul_poly = MLE::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(6)]);
+        let new_add_poly = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(3),
+            Fq::from(0),
+            Fq::from(3),
+            Fq::from(0),
+            Fq::from(3),
+            Fq::from(0),
+            Fq::from(3),
+            Fq::from(2),
+            Fq::from(5),
+            Fq::from(2),
+            Fq::from(5),
+            Fq::from(2),
+            Fq::from(5),
+            Fq::from(2),
+            Fq::from(5),
+        ]);
+        let new_mul_poly = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(6),
+            Fq::from(0),
+            Fq::from(6),
+            Fq::from(0),
+            Fq::from(6),
+            Fq::from(0),
+            Fq::from(6),
+        ]);
 
         let add_distinct = polynomial.add_distinct(&polynomial2);
         let mul_distinct = polynomial.mul_distinct(&polynomial2);
@@ -240,12 +255,12 @@ mod tests {
     #[test]
     fn test_partial_evaluation_1() {
         let evaluations = vec![Fq::from(3), Fq::from(1), Fq::from(2), Fq::from(5)];
-        let polynomial = MLE::new(evaluations);
+        let polynomial = Multilinear::new(evaluations);
 
         let evaluation_point = Fq::from(5);
         let new_polynomial = polynomial.partial_evaluation(&evaluation_point, &0);
 
-        let expected_polynomial = MLE::new(vec![Fq::from(15), Fq::from(4)]);
+        let expected_polynomial = Multilinear::new(vec![Fq::from(15), Fq::from(4)]);
 
         assert_eq!(new_polynomial, expected_polynomial);
     }
@@ -262,7 +277,7 @@ mod tests {
             Fq::from(10),
             Fq::from(18),
         ];
-        let polynomial = MLE::new(evaluations);
+        let polynomial = Multilinear::new(evaluations);
 
         // obtain: f(2,y,z) = 4yz + 4y + 6z + 9 at y = 3, z = 2 = 57
         let new_polynomial_x_1 = polynomial.partial_evaluation(&Fq::from(2), &0);
@@ -286,7 +301,7 @@ mod tests {
     #[test]
     fn test_evaluation_1() {
         let evaluations = vec![Fq::from(3), Fq::from(1), Fq::from(2), Fq::from(5)];
-        let polynomial = MLE::new(evaluations);
+        let polynomial = Multilinear::new(evaluations);
 
         let points = vec![Fq::from(5), Fq::from(6)];
         let result_polynomial = polynomial.evaluation(&points);
@@ -304,7 +319,7 @@ mod tests {
             Fq::from(10),
             Fq::from(18),
         ];
-        let polynomial_2 = MLE::new(evaluations_2);
+        let polynomial_2 = Multilinear::new(evaluations_2);
         let points_2 = vec![Fq::from(2), Fq::from(3), Fq::from(1)];
         let result_polynomial_2 = polynomial_2.evaluation(&points_2);
         assert_eq!(result_polynomial_2, Fq::from(5));
@@ -313,7 +328,7 @@ mod tests {
     #[test]
     fn test_evaluation_2() {
         // f(a, b, c) = 2ab + 3bc
-        let poly = MLE::new(vec![
+        let poly = Multilinear::new(vec![
             Fq::from(0),
             Fq::from(0),
             Fq::from(0),
@@ -330,7 +345,7 @@ mod tests {
 
     #[test]
     fn test_split_poly_into_two_and_sum_each_part() {
-        let mut poly1 = MLE::new(vec![
+        let mut poly1 = Multilinear::new(vec![
             Fq::from(0),
             Fq::from(0),
             Fq::from(0),
@@ -340,7 +355,7 @@ mod tests {
             Fq::from(2),
             Fq::from(4),
         ]);
-        let mut poly2 = MLE::new(vec![
+        let mut poly2 = Multilinear::new(vec![
             Fq::from(0),
             Fq::from(0),
             Fq::from(2),
@@ -353,8 +368,8 @@ mod tests {
         let evaluation1 = poly1.split_poly_into_two_and_sum_each_part();
         let evaluation2 = poly2.split_poly_into_two_and_sum_each_part();
 
-        let expected_polynomial1 = MLE::new(vec![Fq::from(2), Fq::from(10)]);
-        let expected_polynomial2 = MLE::new(vec![Fq::from(9), Fq::from(6)]);
+        let expected_polynomial1 = Multilinear::new(vec![Fq::from(2), Fq::from(10)]);
+        let expected_polynomial2 = Multilinear::new(vec![Fq::from(9), Fq::from(6)]);
 
         assert_eq!(evaluation1, expected_polynomial1);
         assert_eq!(evaluation2, expected_polynomial2);
@@ -373,7 +388,7 @@ mod tests {
             Fq::from(8),
         ];
 
-        let poly = MLE::new(val);
+        let poly = Multilinear::new(val);
 
         let res = poly.sum_over_the_boolean_hypercube();
 

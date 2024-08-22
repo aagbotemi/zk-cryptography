@@ -1,14 +1,10 @@
-use ark_ff::PrimeField;
-use polynomial::{interface::MLETrait, MLE};
-use std::ops::{Add, Mul};
-
 use crate::{
     gate::{Gate, GateType},
-    utils::{
-        bit_count_for_n_elem, size_of_mle_n_var_at_each_layer,
-        transform_label_to_binary_and_to_decimal,
-    },
+    utils::{size_of_mle_n_var_at_each_layer, transform_label_to_binary_and_to_decimal},
 };
+use ark_ff::PrimeField;
+use polynomial::Multilinear;
+use std::ops::{Add, Mul};
 
 #[derive(Debug)]
 pub struct GKRCircuitLayer {
@@ -71,7 +67,10 @@ impl GKRCircuit {
         GKRCircuitEvaluation { layers }
     }
 
-    pub fn add_mult_mle<F: PrimeField>(&self, layer_index: usize) -> (MLE<F>, MLE<F>) {
+    pub fn add_mult_mle<F: PrimeField>(
+        &self,
+        layer_index: usize,
+    ) -> (Multilinear<F>, Multilinear<F>) {
         // dbg!("constructing for layer = {}", layer_index);
         let layer = &self.layers[layer_index];
         let n_vars = size_of_mle_n_var_at_each_layer(layer_index);
@@ -105,8 +104,8 @@ impl GKRCircuit {
             }
         }
 
-        let add_mle = MLE::new(add_evaluations);
-        let mul_mle = MLE::new(mul_evaluations);
+        let add_mle = Multilinear::new(add_evaluations);
+        let mul_mle = Multilinear::new(mul_evaluations);
 
         (add_mle, mul_mle)
     }
@@ -117,7 +116,7 @@ mod tests {
     use super::*;
     use crate::gate::Gate;
     use ark_test_curves::bls12_381::Fr;
-    use polynomial::interface::MLETrait;
+    use polynomial::interface::MultilinearTrait;
 
     // sample circuit evaluation
     //      100(*)    - layer 0

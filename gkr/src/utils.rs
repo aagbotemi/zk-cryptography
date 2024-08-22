@@ -1,6 +1,6 @@
 use ark_ff::PrimeField;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
-use polynomial::{ComposedMLE, MLETrait, MLE};
+use polynomial::{ComposedMultilinear, Multilinear, MultilinearTrait};
 use sumcheck::composed::multi_composed_sumcheck::{
     ComposedSumcheckProof, MultiComposedSumcheckProver, MultiComposedSumcheckVerifier,
 };
@@ -27,17 +27,12 @@ pub fn transform_label_to_binary_and_to_decimal(
     let c_binary_string: String = binary_string(c, layer_index + 1);
 
     let combined_binary_string = a_binary_string + &b_binary_string + &c_binary_string;
-    // dbg!(&combined_binary_string);
-
-
 
     usize::from_str_radix(&combined_binary_string, 2).unwrap_or(0)
 }
 
-
 /// Convert a number to a binary string of a given size
 pub fn binary_string(index: usize, mut bit_count: usize) -> String {
-
     if bit_count == 0 {
         bit_count = 1;
     }
@@ -45,48 +40,14 @@ pub fn binary_string(index: usize, mut bit_count: usize) -> String {
     "0".repeat(bit_count.saturating_sub(binary.len())) + &binary
 }
 
-
-
-
-
-
-
-
-
-
-
-
-    // dbg!(&usize::from_str_radix(&combined_binary, 2).unwrap_or(0));
-
-
-
-
-/// Determines the number of bits needed to represent a number
-pub fn bit_count_for_n_elem(size: usize) -> usize {
-    // if the size of the array is 2, this will say two binary digits are needed
-    // but since array indexing starts at 0 then only 1 binary digit will be needed
-    // i.e first element = 0, second element = 1
-    // hence we need to subtract 1 from the array size inorder to account for zero indexing
-    format!("{:b}", size - 1).len()
-}
-
-pub fn transform_label_to_binary_and_to_decimals(a: usize, b: usize, c: usize) -> usize {
-    let a_binary: String = format!("{:b}", a);
-    let b_binary: String = format!("{:02b}", b);
-    let c_binary: String = format!("{:02b}", c);
-
-    let combined_binary = format!("{}{}{}", a_binary, b_binary, c_binary);
-    usize::from_str_radix(&combined_binary, 2).unwrap_or(0)
-}
-
-pub fn w_mle<F: PrimeField>(layer_eval: Vec<F>) -> MLE<F> {
-    MLE::new(layer_eval)
+pub fn w_mle<F: PrimeField>(layer_eval: Vec<F>) -> Multilinear<F> {
+    Multilinear::new(layer_eval)
 }
 
 pub fn generate_layer_one_prove_sumcheck<F: PrimeField>(
-    add_mle: &MLE<F>,
-    mult_mle: &MLE<F>,
-    w_1_mle: &MLE<F>,
+    add_mle: &Multilinear<F>,
+    mult_mle: &Multilinear<F>,
+    w_1_mle: &Multilinear<F>,
     n_r: &Vec<F>,
     sum: &F,
     transcript: &mut FiatShamirTranscript,
@@ -97,17 +58,14 @@ pub fn generate_layer_one_prove_sumcheck<F: PrimeField>(
     let add_rbc = add_mle.partial_evaluations(&n_r, &vec![0; n_r.len()]);
     let mul_rbc = mult_mle.partial_evaluations(&n_r, &vec![0; n_r.len()]);
 
-    let add_rbc_len = add_rbc.evaluations.len();
-    let mul_rbc_len = mul_rbc.evaluations.len();
-
     let wb = w_1_mle.clone();
     let wc = w_1_mle;
 
     let wb_add_wc = wb.add_distinct(&wc);
     let wb_mul_wc = wb.mul_distinct(&wc);
 
-    let add_fbc = ComposedMLE::new(vec![add_rbc, wb_add_wc]);
-    let mul_fbc = ComposedMLE::new(vec![mul_rbc, wb_mul_wc]);
+    let add_fbc = ComposedMultilinear::new(vec![add_rbc, wb_add_wc]);
+    let mul_fbc = ComposedMultilinear::new(vec![mul_rbc, wb_mul_wc]);
 
     let (sumcheck_proof, challenges) =
         MultiComposedSumcheckProver::prove_partial(&vec![add_fbc, mul_fbc], &sum).unwrap();
@@ -125,7 +83,6 @@ pub fn generate_layer_one_prove_sumcheck<F: PrimeField>(
     let beta = transcript.evaluate_challenge_into_field::<F>();
 
     let new_claim: F = alpha * eval_wb + beta * eval_wc;
-    // dbg!(new_claim);
 
     let claimed_sum = new_claim;
     let rb = b.to_vec();
@@ -135,8 +92,8 @@ pub fn generate_layer_one_prove_sumcheck<F: PrimeField>(
 }
 
 pub fn generate_layer_one_verify_sumcheck<F: PrimeField>(
-    add_mle: &MLE<F>,
-    mult_mle: &MLE<F>,
+    add_mle: &Multilinear<F>,
+    mult_mle: &Multilinear<F>,
     proof: &ComposedSumcheckProof<F>,
     n_r: Vec<F>,
     sum: &F,
@@ -171,7 +128,6 @@ pub fn generate_layer_one_verify_sumcheck<F: PrimeField>(
     let beta = transcript.evaluate_challenge_into_field::<F>();
 
     let new_claim: F = alpha * wb + beta * wc;
-    // dbg!(new_claim);
 
     (true, new_claim)
 }
@@ -196,10 +152,6 @@ mod tests {
         // a at layer 0, b & c at layer 1
         assert_eq!(transform_label_to_binary_and_to_decimal(1, 1, 2, 3), 27);
         assert_eq!(transform_label_to_binary_and_to_decimal(2, 1, 2, 3), 83);
-        // a at layer 1, b & c at layer 2
-        // assert_eq!(transform_label_to_binary_and_to_decimal(1, 1, 2, 3), 27);
-        // // a at layer 2, b & c at layer 3
-        // assert_eq!(transform_label_to_binary_and_to_decimal(2, 3, 6, 7), 247);
     }
 
     #[test]

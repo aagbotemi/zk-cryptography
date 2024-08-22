@@ -1,21 +1,21 @@
 use crate::utils::convert_field_to_byte;
 use ark_ff::PrimeField;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
-use polynomial::{interface::MLETrait, MLE};
+use polynomial::{interface::MultilinearTrait, Multilinear};
 
 pub struct Sumcheck<F: PrimeField> {
-    poly: MLE<F>,
+    poly: Multilinear<F>,
     sum: F,
 }
 
 pub struct SumcheckProof<'a, F: PrimeField> {
-    poly: &'a MLE<F>,
+    poly: &'a Multilinear<F>,
     sum: F,
-    univariate_poly: Vec<MLE<F>>,
+    univariate_poly: Vec<Multilinear<F>>,
 }
 
 impl<F: PrimeField> Sumcheck<F> {
-    pub fn new(poly: MLE<F>) -> Self {
+    pub fn new(poly: Multilinear<F>) -> Self {
         Sumcheck {
             poly,
             sum: Default::default(),
@@ -35,7 +35,7 @@ impl<F: PrimeField> Sumcheck<F> {
         transcript.commit(&poly_sum_bytes);
 
         let mut challenges: Vec<F> = vec![];
-        let mut current_poly: MLE<F> = self.poly.clone();
+        let mut current_poly: Multilinear<F> = self.poly.clone();
 
         for _ in 0..self.poly.n_vars {
             let uni_poly = current_poly.split_poly_into_two_and_sum_each_part();
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_sum_calculation() {
-        let poly = MLE::new(vec![
+        let poly = Multilinear::new(vec![
             Fq::from(0),
             Fq::from(0),
             Fq::from(0),
@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_sum_check_proof() {
-        let poly = MLE::new(vec![
+        let poly = Multilinear::new(vec![
             Fq::from(0),
             Fq::from(0),
             Fq::from(2),
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_sum_check_proof_2() {
-        let poly = MLE::new(vec![
+        let poly = Multilinear::new(vec![
             Fq::from(0),
             Fq::from(0),
             Fq::from(0),
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_sum_check_proof_3() {
-        let poly = MLE::new(vec![
+        let poly = Multilinear::new(vec![
             Fq::from(1),
             Fq::from(3),
             Fq::from(5),
