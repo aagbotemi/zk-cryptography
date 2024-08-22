@@ -7,40 +7,29 @@ use polynomial::Multilinear;
 use std::ops::{Add, Mul};
 
 #[derive(Debug)]
-pub struct GKRCircuitLayer {
+pub struct CircuitLayer {
     pub layer: Vec<Gate>,
 }
 
 #[derive(Debug)]
-pub struct GKRCircuit {
-    pub layers: Vec<GKRCircuitLayer>,
+pub struct Circuit {
+    pub layers: Vec<CircuitLayer>,
 }
 
-#[derive(Debug)]
-pub struct GKRCircuitEvaluation<F> {
-    pub layers: Vec<Vec<F>>,
-}
-
-impl GKRCircuitLayer {
+impl CircuitLayer {
     pub fn new(layer: Vec<Gate>) -> Self {
-        GKRCircuitLayer { layer }
+        CircuitLayer { layer }
     }
 }
 
-impl<F> GKRCircuitEvaluation<F> {
-    pub fn new(layers: Vec<Vec<F>>) -> Self {
-        GKRCircuitEvaluation { layers }
-    }
-}
-
-impl GKRCircuit {
-    pub fn new(layers: Vec<GKRCircuitLayer>) -> GKRCircuit {
+impl Circuit {
+    pub fn new(layers: Vec<CircuitLayer>) -> Circuit {
         Self { layers }
     }
 }
 
-impl GKRCircuit {
-    pub fn evaluation<F: PrimeField>(&self, input: &[F]) -> GKRCircuitEvaluation<F>
+impl Circuit {
+    pub fn evaluation<F: PrimeField>(&self, input: &[F]) -> Vec<Vec<F>>
     where
         F: Add<Output = F> + Mul<Output = F> + Copy,
     {
@@ -64,14 +53,13 @@ impl GKRCircuit {
         }
 
         layers.reverse();
-        GKRCircuitEvaluation { layers }
+        layers
     }
 
     pub fn add_mult_mle<F: PrimeField>(
         &self,
         layer_index: usize,
     ) -> (Multilinear<F>, Multilinear<F>) {
-        // dbg!("constructing for layer = {}", layer_index);
         let layer = &self.layers[layer_index];
         let n_vars = size_of_mle_n_var_at_each_layer(layer_index);
 
@@ -88,7 +76,6 @@ impl GKRCircuit {
                         gate.inputs[1],
                     );
 
-                    dbg!("add gate_decimal = {}", gate_decimal);
                     add_evaluations[gate_decimal] = F::one()
                 }
                 GateType::Mul => {
@@ -98,7 +85,6 @@ impl GKRCircuit {
                         gate.inputs[0],
                         gate.inputs[1],
                     );
-                    dbg!("mul gate_decimal = {}", gate_decimal);
                     mul_evaluations[gate_decimal] = F::one();
                 }
             }
@@ -127,12 +113,12 @@ mod tests {
     //
     #[test]
     fn test_circuit_evaluation_1() {
-        let layer_0 = GKRCircuitLayer::new(vec![Gate::new(GateType::Mul, [0, 1])]);
-        let layer_1 = GKRCircuitLayer::new(vec![
+        let layer_0 = CircuitLayer::new(vec![Gate::new(GateType::Mul, [0, 1])]);
+        let layer_1 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
         ]);
-        let circuit = GKRCircuit::new(vec![layer_0, layer_1]);
+        let circuit = Circuit::new(vec![layer_0, layer_1]);
         let input = [
             Fr::from(2u32),
             Fr::from(3u32),
@@ -151,24 +137,24 @@ mod tests {
             ],
         ];
 
-        assert_eq!(evaluation.layers, expected_output);
+        assert_eq!(evaluation, expected_output);
     }
 
     #[test]
     fn test_circuit_evaluation_2() {
-        let layer_0 = GKRCircuitLayer::new(vec![
+        let layer_0 = CircuitLayer::new(vec![
             Gate::new(GateType::Mul, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
         ]);
 
-        let layer_1 = GKRCircuitLayer::new(vec![
+        let layer_1 = CircuitLayer::new(vec![
             Gate::new(GateType::Mul, [0, 0]),
             Gate::new(GateType::Mul, [1, 1]),
             Gate::new(GateType::Mul, [1, 2]),
             Gate::new(GateType::Mul, [3, 3]),
         ]);
 
-        let circuit = GKRCircuit::new(vec![layer_0, layer_1]);
+        let circuit = Circuit::new(vec![layer_0, layer_1]);
         let evaluation = circuit.evaluation(&[
             Fr::from(3u32),
             Fr::from(2u32),
@@ -192,26 +178,26 @@ mod tests {
             ],
         ];
 
-        assert_eq!(evaluation.layers, expected_output);
+        assert_eq!(evaluation, expected_output);
     }
 
     #[test]
     fn test_circuit_evaluation_3() {
-        let layer_0 = GKRCircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
+        let layer_0 = CircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
 
-        let layer_1 = GKRCircuitLayer::new(vec![
+        let layer_1 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
         ]);
 
-        let layer_2 = GKRCircuitLayer::new(vec![
+        let layer_2 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
             Gate::new(GateType::Mul, [4, 5]),
             Gate::new(GateType::Mul, [6, 7]),
         ]);
 
-        let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
+        let circuit = Circuit::new(vec![layer_0, layer_1, layer_2]);
 
         let evaluation = circuit.evaluation(&[
             Fr::from(2u32),
@@ -245,26 +231,26 @@ mod tests {
             ],
         ];
 
-        assert_eq!(evaluation.layers, expected_output);
+        assert_eq!(evaluation, expected_output);
     }
 
     #[test]
     fn test_get_add_n_mul_mle_layer_0() {
-        let layer_0 = GKRCircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
+        let layer_0 = CircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
 
-        let layer_1 = GKRCircuitLayer::new(vec![
+        let layer_1 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
         ]);
 
-        let layer_2 = GKRCircuitLayer::new(vec![
+        let layer_2 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
             Gate::new(GateType::Mul, [4, 5]),
             Gate::new(GateType::Mul, [6, 7]),
         ]);
 
-        let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
+        let circuit = Circuit::new(vec![layer_0, layer_1, layer_2]);
 
         let (add_mle, mul_mle) = circuit.add_mult_mle::<Fr>(0);
 
@@ -299,21 +285,21 @@ mod tests {
 
     #[test]
     fn test_get_add_n_mul_mle_layer_1() {
-        let layer_0 = GKRCircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
+        let layer_0 = CircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
 
-        let layer_1 = GKRCircuitLayer::new(vec![
+        let layer_1 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
         ]);
 
-        let layer_2 = GKRCircuitLayer::new(vec![
+        let layer_2 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
             Gate::new(GateType::Mul, [4, 5]),
             Gate::new(GateType::Mul, [6, 7]),
         ]);
 
-        let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
+        let circuit = Circuit::new(vec![layer_0, layer_1, layer_2]);
 
         let (add_mle, mul_mle) = circuit.add_mult_mle::<Fr>(1);
 
@@ -435,21 +421,21 @@ mod tests {
 
     #[test]
     fn test_get_add_n_mul_mle_layer_2() {
-        let layer_0 = GKRCircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
+        let layer_0 = CircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
 
-        let layer_1 = GKRCircuitLayer::new(vec![
+        let layer_1 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
         ]);
 
-        let layer_2 = GKRCircuitLayer::new(vec![
+        let layer_2 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
             Gate::new(GateType::Mul, [4, 5]),
             Gate::new(GateType::Mul, [6, 7]),
         ]);
 
-        let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_2]);
+        let circuit = Circuit::new(vec![layer_0, layer_1, layer_2]);
 
         let (add_mle, mul_mle) = circuit.add_mult_mle::<Fr>(2);
 

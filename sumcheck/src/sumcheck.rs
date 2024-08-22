@@ -8,8 +8,8 @@ pub struct Sumcheck<F: PrimeField> {
     sum: F,
 }
 
-pub struct SumcheckProof<'a, F: PrimeField> {
-    poly: &'a Multilinear<F>,
+pub struct SumcheckProof<F: PrimeField> {
+    poly: Multilinear<F>,
     sum: F,
     univariate_poly: Vec<Multilinear<F>>,
 }
@@ -52,7 +52,7 @@ impl<F: PrimeField> Sumcheck<F> {
 
         (
             SumcheckProof {
-                poly: &self.poly,
+                poly: self.poly.clone(),
                 sum: self.sum,
                 univariate_poly: uni_polys,
             },

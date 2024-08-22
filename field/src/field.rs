@@ -54,9 +54,6 @@ impl FieldTrait for Field {
     }
 
     fn sqrt(&self) -> Option<Self> {
-        // if self.value <= 0 {
-        //     return None;
-        // }
         if self.value == 0 {
             return Some(Field::new(0, self.modulus));
         }

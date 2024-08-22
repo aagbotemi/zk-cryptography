@@ -6,39 +6,39 @@ use sumcheck::composed::multi_composed_sumcheck::{
 };
 
 use crate::{
-    circuit::GKRCircuit,
+    circuit::Circuit,
     utils::{generate_layer_one_prove_sumcheck, generate_layer_one_verify_sumcheck, w_mle},
 };
 
 pub struct GKRProof<F: PrimeField> {
     sumcheck_proofs: Vec<ComposedSumcheckProof<F>>,
-    wb_s: Vec<F>,            // w_mle for layer one onward for rb
-    wc_s: Vec<F>,            // w_mle for layer one onward for rc
-    w_0_mle: Multilinear<F>, // w_mle for layer
+    wb_s: Vec<F>,
+    wc_s: Vec<F>,
+    w_0_mle: Multilinear<F>,
 }
 
 pub struct GKRProtocol {}
 
 impl GKRProtocol {
     /// Prove correct circuit evaluation using the GKR protocol
-    pub fn prove<'a, F: PrimeField>(circuit: &'a GKRCircuit, input: &'a Vec<F>) -> GKRProof<F> {
+    pub fn prove<'a, F: PrimeField>(circuit: &'a Circuit, input: &'a Vec<F>) -> GKRProof<F> {
         let mut transcript = FiatShamirTranscript::new();
         let mut sumcheck_proofs: Vec<ComposedSumcheckProof<F>> = Vec::new();
         let mut wb_s: Vec<F> = Vec::new();
         let mut wc_s: Vec<F> = Vec::new();
 
-        let circuit_eval = circuit.evaluation(input);
-        let mut circuit_eval_layer_zero_pad = circuit_eval.layers[0].clone();
-        circuit_eval_layer_zero_pad.push(F::zero());
+        let circuit_evaluation = circuit.evaluation(input);
+        let mut circuit_evaluation_layer_zero_pad = circuit_evaluation[0].clone();
+        circuit_evaluation_layer_zero_pad.push(F::zero());
 
-        let w_0_mle = w_mle(circuit_eval_layer_zero_pad.to_vec());
+        let w_0_mle = w_mle(circuit_evaluation_layer_zero_pad.to_vec());
         transcript.commit(&w_0_mle.to_bytes());
 
         let n_r: Vec<F> = transcript.evaluate_n_challenge_into_field(&w_0_mle.n_vars);
         let mut claimed_sum: F = w_0_mle.evaluation(&n_r);
 
         let (add_mle_1, mult_mle_1) = circuit.add_mult_mle::<F>(0);
-        let w_1_mle = w_mle(circuit_eval.layers[1].to_vec());
+        let w_1_mle = w_mle(circuit_evaluation[1].to_vec());
 
         let (claimed, alph, bta, rb, rc) = generate_layer_one_prove_sumcheck(
             &add_mle_1,
@@ -59,7 +59,7 @@ impl GKRProtocol {
         let mut r_b: Vec<F> = rb;
         let mut r_c: Vec<F> = rc;
 
-        for layer_index in 2..circuit_eval.layers.len() {
+        for layer_index in 2..circuit_evaluation.len() {
             let (add_mle, mult_mle) = circuit.add_mult_mle::<F>(layer_index - 1);
 
             let add_rb_bc = add_mle.partial_evaluations(&r_b, &vec![0; r_b.len()]);
@@ -67,7 +67,7 @@ impl GKRProtocol {
 
             let add_rc_bc = add_mle.partial_evaluations(&r_c, &vec![0; r_b.len()]);
             let mul_rc_bc = mult_mle.partial_evaluations(&r_c, &vec![0; r_b.len()]);
-            let w_i_mle = w_mle(circuit_eval.layers[layer_index].to_vec());
+            let w_i_mle = w_mle(circuit_evaluation[layer_index].to_vec());
 
             let wb = w_i_mle.clone();
             let wc = w_i_mle;
@@ -116,7 +116,7 @@ impl GKRProtocol {
         }
     }
 
-    pub fn verify<F: PrimeField>(circuit: &GKRCircuit, input: &[F], proof: &GKRProof<F>) -> bool {
+    pub fn verify<F: PrimeField>(circuit: &Circuit, input: &[F], proof: &GKRProof<F>) -> bool {
         if proof.sumcheck_proofs.len() != proof.wb_s.len()
             || proof.sumcheck_proofs.len() != proof.wc_s.len()
         {
@@ -200,7 +200,7 @@ impl GKRProtocol {
 #[cfg(test)]
 mod tests {
     use crate::{
-        circuit::GKRCircuitLayer,
+        circuit::CircuitLayer,
         gate::{Gate, GateType},
     };
 
@@ -217,12 +217,12 @@ mod tests {
 
     #[test]
     fn test_gkr_protocol_1() {
-        let layer_0 = GKRCircuitLayer::new(vec![Gate::new(GateType::Mul, [0, 1])]);
-        let layer_1 = GKRCircuitLayer::new(vec![
+        let layer_0 = CircuitLayer::new(vec![Gate::new(GateType::Mul, [0, 1])]);
+        let layer_1 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
         ]);
-        let circuit = GKRCircuit::new(vec![layer_0, layer_1]);
+        let circuit = Circuit::new(vec![layer_0, layer_1]);
         let input = vec![
             Fq::from(2u32),
             Fq::from(3u32),
@@ -238,18 +238,18 @@ mod tests {
 
     #[test]
     fn test_gkr_protocol_2() {
-        let layer_0 = GKRCircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
-        let layer_1 = GKRCircuitLayer::new(vec![
+        let layer_0 = CircuitLayer::new(vec![Gate::new(GateType::Add, [0, 1])]);
+        let layer_1 = CircuitLayer::new(vec![
             Gate::new(GateType::Mul, [0, 1]),
             Gate::new(GateType::Add, [2, 3]),
         ]);
-        let layer_3 = GKRCircuitLayer::new(vec![
+        let layer_3 = CircuitLayer::new(vec![
             Gate::new(GateType::Add, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
             Gate::new(GateType::Mul, [4, 5]),
             Gate::new(GateType::Mul, [6, 7]),
         ]);
-        let layer_4 = GKRCircuitLayer::new(vec![
+        let layer_4 = CircuitLayer::new(vec![
             Gate::new(GateType::Mul, [0, 1]),
             Gate::new(GateType::Mul, [2, 3]),
             Gate::new(GateType::Mul, [4, 5]),
@@ -260,7 +260,7 @@ mod tests {
             Gate::new(GateType::Mul, [14, 15]),
         ]);
 
-        let circuit = GKRCircuit::new(vec![layer_0, layer_1, layer_3, layer_4]);
+        let circuit = Circuit::new(vec![layer_0, layer_1, layer_3, layer_4]);
         let input = [
             Fq::from(2u32),
             Fq::from(1u32),
@@ -282,7 +282,7 @@ mod tests {
 
         let evaluation = circuit.evaluation(&input);
 
-        assert_eq!(evaluation.layers[0][0], Fq::from(224u32));
+        assert_eq!(evaluation[0][0], Fq::from(224u32));
 
         let proof = GKRProtocol::prove(&circuit, &input.to_vec());
 
