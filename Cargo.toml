@@ -1,9 +1,10 @@
 [workspace]
 resolver = "2"
 
-members = [ "elliptic-curve",
+members = [
+    "gkr", "elliptic-curve",
     "fiat-shamir-transcript", "field",
     "polynomial",
     "shamir-secret-sharing",
-    "sumcheck",
+    "sumcheck", "rustacean",
 ]
