@@ -17,8 +17,3 @@ let shares = create_shares(secret, threshold, total_shares);
 let reconstructed_secret = reconstruct_secret(&shares[0..3], F::from(0));
 assert_eq!(secret, reconstructed_secret);
 ```
-
-## License
-This project is licensed under the MIT License.
-## Disclaimer
-This implementation is for educational purposes. For use in production systems, please ensure it meets your specific security requirements and has been properly audited.

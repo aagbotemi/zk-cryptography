@@ -26,8 +26,3 @@ println!("Field Element: {:?}", field_element);
 let field_elements: Vec<F> = transcript.evaluate_n_challenge_into_field(&3);
 println!("Field Elements: {:?}", field_elements);
 ```
-## License
-This project is licensed under the MIT License.
-
-## Disclaimer
-This implementation is for educational purposes. For use in production systems, please ensure it meets your specific security requirements and has been properly audited.

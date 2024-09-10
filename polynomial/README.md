@@ -69,10 +69,3 @@ let composed_poly = ComposedMultilinear::new(vec![poly1, poly2]);
 let element_wise_product = composed_poly.element_wise_product();
 let evaluation = composed_poly.evaluation(&[F::from(2)]); // Evaluate at x=2
 ```
-
-## Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
-## License
-This project is licensed under the MIT License.
-## Disclaimer
-This library is for educational and research purposes. It has not been audited for production use in cryptographic applications. 

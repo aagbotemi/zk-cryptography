@@ -36,10 +36,3 @@ let scalar = 3;
 let multiplied_point = curve.scalar_multiplication(&point, scalar).unwrap();
 println!("Result of scalar multiplication: {:?}", multiplied_point);
 ```
-
-
-## License
-This project is licensed under the MIT License.
-
-## Disclaimer
-This implementation is for educational purposes. For use in production systems, please ensure it meets your specific security requirements and has been properly audited.

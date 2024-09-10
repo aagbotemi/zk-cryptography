@@ -35,10 +35,3 @@ sumcheck.poly_sum();
 let (proof, challenges) = sumcheck.prove();
 let is_valid = sumcheck.verify(&proof);
 ```
-
-## Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
-## License
-This project is licensed under the MIT License.
-## Disclaimer
-This implementation is for educational purposes and has not been audited for production use.

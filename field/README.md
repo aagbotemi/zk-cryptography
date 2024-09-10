@@ -50,10 +50,3 @@ let one = field_element.one();
 println!("Zero: {:?}", zero);
 println!("One: {:?}", one);
 ```
-
-
-## License
-This project is licensed under the MIT License.
-
-## Disclaimer
-This implementation is for educational purposes. For use in production systems, please ensure it meets your specific security requirements and has been properly audited.
