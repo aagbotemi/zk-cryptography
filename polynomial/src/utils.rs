@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::multilinear::coefficient_form::MultiLinearMonomial;
 use ark_ff::PrimeField;
 
@@ -44,6 +46,29 @@ pub fn pick_pairs_with_random_index(
     result
 }
 
+pub fn pick_pairs_with_random_n_index(
+    num_of_evaluations: usize,
+    variable_indices: &[usize],
+) -> Vec<(usize, usize)> {
+    assert!(num_of_evaluations % 2 == 0, "n must be even");
+    assert!(
+        variable_indices.len() < num_of_evaluations / 2,
+        "variable_index must be less than n/2"
+    );
+
+    let mut pairs = Vec::new();
+
+    for i in 0..num_of_evaluations {
+        for &variable_index in variable_indices {
+            let pair = (i, i ^ (1 << variable_index));
+            if !pairs.contains(&pair) && !pairs.contains(&(pair.1, pair.0)) {
+                pairs.push(pair);
+            }
+        }
+    }
+    pairs
+}
+
 pub fn lagrange_basis<F: PrimeField>(points: &[(F, F)], i: usize) -> Vec<F> {
     let mut l_i = vec![F::one()];
 
@@ -66,4 +91,22 @@ pub fn lagrange_basis<F: PrimeField>(points: &[(F, F)], i: usize) -> Vec<F> {
     l_i.into_iter()
         .map(|coeff| coeff * denom.inverse().unwrap())
         .collect()
+}
+
+pub fn boolean_hypercube<F: PrimeField>(n: usize) -> Vec<Vec<F>> {
+    let mut hypercube = Vec::with_capacity(1 << n);
+
+    for i in 0..(1 << n) {
+        let mut vertex = Vec::with_capacity(n);
+        for j in (0..n).rev() {
+            if (i & (1 << j)) != 0 {
+                vertex.push(F::one());
+            } else {
+                vertex.push(F::zero());
+            }
+        }
+        hypercube.push(vertex);
+    }
+
+    hypercube
 }
