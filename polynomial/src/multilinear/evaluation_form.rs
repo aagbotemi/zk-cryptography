@@ -1,6 +1,6 @@
 use crate::{interface::MultilinearTrait, utils::pick_pairs_with_random_index};
 use ark_ff::{BigInteger, PrimeField};
-use std::ops::{Add, AddAssign, Mul};
+use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Multilinear<F: PrimeField> {
@@ -167,6 +167,32 @@ impl<F: PrimeField> AddAssign for Multilinear<F> {
 
         for i in 0..self.evaluations.len() {
             self.evaluations[i] += other.evaluations[i];
+        }
+    }
+}
+
+impl<F: PrimeField> Sub for Multilinear<F> {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let lhs = self.evaluations;
+        let mut res = vec![];
+
+        for i in 0..lhs.len() {
+            res.push(lhs[i] - rhs.evaluations[i])
+        }
+
+        Self {
+            n_vars: self.n_vars,
+            evaluations: res,
+        }
+    }
+}
+
+impl<F: PrimeField> SubAssign for Multilinear<F> {
+    fn sub_assign(&mut self, other: Self) {
+        for i in 0..self.evaluations.len() {
+            self.evaluations[i] -= other.evaluations[i];
         }
     }
 }
