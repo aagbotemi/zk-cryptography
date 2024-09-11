@@ -1,6 +1,7 @@
+use ark_bls12_381::Bls12_381;
 use ark_ec::{pairing::Pairing, Group};
 use ark_ff::PrimeField;
-use std::fmt;
+use std::fmt::{Debug, Formatter, Result};
 
 use crate::utils::generate_array_of_points;
 use polynomial::utils::boolean_hypercube;
@@ -11,7 +12,11 @@ pub struct TrustedSetup<P: Pairing> {
 }
 
 impl<P: Pairing> TrustedSetup<P> {
-    pub fn setup<F: PrimeField>(eval_points: &[F]) -> Self {
+    pub fn setup<F: PrimeField>(eval_points: &[F]) -> Self
+    where
+        F: PrimeField,
+        P: Pairing,
+    {
         let powers_of_tau_in_g1: Vec<P::G1> = Self::generate_powers_of_tau_in_g1(&eval_points);
         let powers_of_tau_in_g2: Vec<P::G2> = Self::generate_powers_of_tau_in_g2(&eval_points);
 
@@ -26,7 +31,7 @@ impl<P: Pairing> TrustedSetup<P> {
         let g1 = P::G1::generator();
 
         let bh_cube: Vec<Vec<F>> = boolean_hypercube(eval_points.len());
-        let array_of_points = generate_array_of_points(&bh_cube, &eval_points);
+        let array_of_points: Vec<F> = generate_array_of_points(&bh_cube, &eval_points);
 
         array_of_points
             .iter()
@@ -45,8 +50,8 @@ impl<P: Pairing> TrustedSetup<P> {
     }
 }
 
-impl fmt::Debug for TrustedSetup<ark_bls12_381::Bls12_381> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Debug for TrustedSetup<Bls12_381> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         f.debug_struct("TrustedSetup")
             .field("powers_of_tau_in_g1", &self.powers_of_tau_in_g1)
             .field("powers_of_tau_in_g2", &self.powers_of_tau_in_g2)

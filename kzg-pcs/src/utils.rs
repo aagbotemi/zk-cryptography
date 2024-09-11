@@ -43,7 +43,9 @@ pub fn generate_array_of_points<F: PrimeField>(bh_cube: &[Vec<F>], eval_points: 
 #[cfg(test)]
 mod tests {
     use ark_bls12_381::Fr;
-    use polynomial::Multilinear;
+    use polynomial::{utils::boolean_hypercube, Multilinear};
+
+    use crate::utils::generate_array_of_points;
 
     use super::{check_for_zero_and_one, get_poly_quotient, get_poly_remainder};
 
@@ -133,23 +135,11 @@ mod tests {
         let quotient_x = get_poly_quotient(&poly1);
         let quotient_y = get_poly_quotient(&poly2);
         let quotient_z = get_poly_quotient(&poly3);
-        let expected_poly_after_quotient_x = Multilinear::new(vec![Fr::from(0), Fr::from(4)]);
+        let expected_poly_after_quotient_x =
+            Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(4), Fr::from(4)]);
         let expected_poly_after_quotient_y = Multilinear::new(vec![Fr::from(20), Fr::from(18)]);
 
-        // The test is failing because of quotient at x
-        // given a polynomial: 4xy + 7z -2yz
-        // f(1) = 4y + 7z - 2yz
-        // f(0) = 7z - 2yz
-        // f(1) - f(0) = 4y + 7z - 2yz - (7z - 2yz)
-        // f(1) - f(0) = 4y
-        // bh at f(1) - f(0) = [0, 4] => res_1
-        //
-        // bh at f(1) = [0, 7, 4, 9]
-        // bh at f(0) = [0, 7, 0, 5]
-        // subtracting bh @ f(1) from bh @ f(0), gives
-        // [0, 0, 4, 4] => res_2
-        // so res_1 != res_2
-        // assert_eq!(quotient_x, expected_poly_after_quotient_x);
+        assert_eq!(quotient_x, expected_poly_after_quotient_x);
         assert_eq!(quotient_y, expected_poly_after_quotient_y);
         assert_eq!(quotient_z.evaluations[0], Fr::from(-11));
     }
@@ -182,16 +172,27 @@ mod tests {
         assert_eq!(expected_poly_z, remainder_after_y);
         assert_eq!(Fr::from(114), remainder_after_z.evaluations[0]);
     }
-}
 
-// i have a polynomial 4xy + 7z - 2yz, and the evaluation will be [0,7,0,5,0,7,4,9], and i want to evaluate it at x = 2, y = 3, z = 4
-// where boolean hypercube is 0, it will be 1-x, why it is 1, it will be x
-// 000 - (1-2)(1-3)(1-4) = -6
-// 001 - (1-2)(1-3)4 = 8
-// 010 - (1-2)3(1-4) = 9
-// 011 - (1-2)(3)(4) = -12
-// 100 - 2(1-3)(1-4) = 12
-// 101 - 2(1-3)4 = -16
-// 110 - 2(3)(1-4) = -18
-// 111 - 2(3)(4) = 24
-// so the output will be [-6,8,9,-12,12,-16,-18,24]
+    #[test]
+    fn test_generate_array_of_points() {
+        let expected_evals = vec![
+            Fr::from(-6),
+            Fr::from(8),
+            Fr::from(9),
+            Fr::from(-12),
+            Fr::from(12),
+            Fr::from(-16),
+            Fr::from(-18),
+            Fr::from(24),
+        ];
+        let expected_poly = Multilinear::new(expected_evals);
+
+        let bh_cube: Vec<Vec<Fr>> = boolean_hypercube(3);
+        let eval_points = vec![Fr::from(2), Fr::from(3_u8), Fr::from(4_u8)];
+
+        let array_of_points = generate_array_of_points(&bh_cube, &eval_points);
+        let result_poly = Multilinear::new(array_of_points);
+
+        assert_eq!(expected_poly, result_poly);
+    }
+}
