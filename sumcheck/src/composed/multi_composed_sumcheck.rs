@@ -1,9 +1,12 @@
 use super::composed_sumcheck::ComposedSumcheck;
-use crate::utils::{composed_poly_to_bytes, convert_field_to_byte, convert_round_poly_to_uni_poly_format};
+use crate::utils::{
+    composed_poly_to_bytes, convert_field_to_byte, convert_round_poly_to_uni_poly_format,
+};
 use ark_ff::PrimeField;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
 use polynomial::{
-    interface::ComposedMultilinearTrait, ComposedMultilinear, MultilinearTrait, UnivariatePolynomial, UnivariatePolynomialTrait
+    interface::ComposedMultilinearTrait, ComposedMultilinear, MultilinearTrait,
+    UnivariatePolynomial, UnivariatePolynomialTrait,
 };
 
 #[derive(Debug)]
@@ -27,7 +30,6 @@ impl<F: PrimeField> ComposedSumcheckProof<F> {
         bytes
     }
 }
-
 
 pub struct MultiComposedSumcheckProver {}
 

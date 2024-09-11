@@ -1,6 +1,7 @@
 use ark_ff::{BigInteger, PrimeField};
 use polynomial::{
-    interface::MultilinearTrait, utils::boolean_hypercube, ComposedMultilinear, ComposedMultilinearTrait, Multilinear
+    interface::MultilinearTrait, utils::boolean_hypercube, ComposedMultilinear,
+    ComposedMultilinearTrait, Multilinear,
 };
 
 pub fn convert_field_to_byte<F: PrimeField>(element: &F) -> Vec<u8> {

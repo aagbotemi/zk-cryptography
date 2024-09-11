@@ -82,6 +82,29 @@ impl<F: PrimeField> Multilinear<F> {
             .iter()
             .fold(F::zero(), |acc, val| acc + val)
     }
+
+    pub fn add_to_front(&self) -> Self {
+        let mut res = Vec::with_capacity(self.evaluations.len() * 2);
+        res.extend_from_slice(&self.evaluations);
+        res.extend_from_slice(&self.evaluations);
+        Self::new(res)
+    }
+
+    pub fn add_to_back(&self) -> Self {
+        let len = self.evaluations.len();
+        let mut res = Vec::with_capacity(len * 2);
+
+        let mid_point: usize = len / 2;
+        let first_half: Vec<F> = self.evaluations[..mid_point].to_vec();
+        let second_half: Vec<F> = self.evaluations[mid_point..].to_vec();
+
+        res.extend_from_slice(&first_half);
+        res.extend_from_slice(&first_half);
+        res.extend_from_slice(&second_half);
+        res.extend_from_slice(&second_half);
+
+        Self::new(res)
+    }
 }
 
 impl<F: PrimeField> MultilinearTrait<F> for Multilinear<F> {
@@ -219,14 +242,7 @@ impl<F: PrimeField> Mul<F> for Multilinear<F> {
 mod tests {
     use crate::interface::MultilinearTrait;
     use crate::multilinear::evaluation_form::Multilinear;
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
+    use crate::Fq;
 
     #[test]
     fn test_add_mul_distinct() {
@@ -422,5 +438,73 @@ mod tests {
             res == Fq::from(36),
             "Incorrect sum over the boolean hypercube"
         );
+    }
+
+    #[test]
+    fn test_add_to_front_and_back() {
+        let poly = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(4), Fq::from(4)]);
+        let expected_add_to_front_poly = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(4),
+        ]);
+        let expected_add_to_back_poly = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(4),
+        ]);
+
+        let add_to_front = poly.add_to_front();
+        let add_to_back = poly.add_to_back();
+
+        assert_eq!(add_to_front, expected_add_to_front_poly);
+        assert_eq!(add_to_back, expected_add_to_back_poly)
+    }
+
+    #[test]
+    fn test_poly_subtraction() {
+        let poly1 = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(5),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(7),
+            Fq::from(12),
+        ]);
+        let poly2 = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(2),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(1),
+            Fq::from(3),
+        ]);
+        let poly3 = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(3),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(6),
+            Fq::from(9),
+        ]);
+
+        let res1 = poly1 - poly2;
+        assert_eq!(res1, poly3);
     }
 }

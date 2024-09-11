@@ -33,7 +33,8 @@ impl<F: PrimeField> MultiLinearCoefficientPolynomial<F> {
 
     /// partial evaluation of a polynomial
     pub fn partial_evaluation(&self, eval_points: F) -> Self {
-        let mut res: MultiLinearCoefficientPolynomial<F> = MultiLinearCoefficientPolynomial { terms: vec![] };
+        let mut res: MultiLinearCoefficientPolynomial<F> =
+            MultiLinearCoefficientPolynomial { terms: vec![] };
 
         for (i, j) in pick_pairs_with_index(&self.terms) {
             let y1 = &self.terms[i].coefficient;
@@ -122,15 +123,8 @@ impl<F: PrimeField> Display for MultiLinearCoefficientPolynomial<F> {
 
 #[cfg(test)]
 mod tests {
-    use super::{MultiLinearMonomial, MultiLinearCoefficientPolynomial};
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
+    use super::{MultiLinearCoefficientPolynomial, MultiLinearMonomial};
+    use crate::Fq;
 
     fn init() -> MultiLinearCoefficientPolynomial<Fq> {
         let term1 = MultiLinearMonomial::new(Fq::from(3), vec![false, false]); // 3
@@ -153,7 +147,8 @@ mod tests {
 
         let result_term1 = MultiLinearMonomial::new(Fq::from(0), vec![false]);
         let result_term2 = MultiLinearMonomial::new(Fq::from(13), vec![false]);
-        let result_polynomial = MultiLinearCoefficientPolynomial::new(vec![result_term1, result_term2]);
+        let result_polynomial =
+            MultiLinearCoefficientPolynomial::new(vec![result_term1, result_term2]);
 
         let p_eval = polynomial.partial_evaluation(Fq::from(3_u8));
         assert_eq!(p_eval, result_polynomial);

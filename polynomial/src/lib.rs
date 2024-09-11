@@ -8,3 +8,15 @@ pub use composed::composed_multilinear::ComposedMultilinear;
 pub use interface::{ComposedMultilinearTrait, MultilinearTrait, UnivariatePolynomialTrait};
 pub use multilinear::evaluation_form::Multilinear;
 pub use univariate::univariate::{UnivariateMonomial, UnivariatePolynomial};
+
+use ark_ff::MontConfig;
+use ark_ff::{Fp64, MontBackend};
+
+#[derive(MontConfig)]
+#[modulus = "17"]
+#[generator = "3"]
+// #[small_subgroup_base = "2"]
+// #[small_subgroup_power = "4"]
+pub struct FqConfig;
+
+pub type Fq = Fp64<MontBackend<FqConfig, 1>>;

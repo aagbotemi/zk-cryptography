@@ -121,18 +121,10 @@ impl<F: PrimeField> ComposedMultilinearTrait<F> for ComposedMultilinear<F> {
 
 #[cfg(test)]
 mod tests {
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
-
     use super::*;
     use crate::interface::MultilinearTrait;
+    use crate::Fq;
     use crate::Multilinear;
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
 
     #[test]
     fn test_evaluation() {
