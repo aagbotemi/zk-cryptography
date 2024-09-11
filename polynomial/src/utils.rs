@@ -110,3 +110,45 @@ pub fn boolean_hypercube<F: PrimeField>(n: usize) -> Vec<Vec<F>> {
 
     hypercube
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_ff::MontConfig;
+    use ark_ff::{Fp64, MontBackend};
+
+    #[derive(MontConfig)]
+    #[modulus = "17"]
+    #[generator = "3"]
+    struct FqConfig;
+    type Fq = Fp64<MontBackend<FqConfig, 1>>;
+
+    #[test]
+    fn test_boolean_hypercube() {
+        let one: Vec<Vec<Fq>> = boolean_hypercube(1);
+        let two: Vec<Vec<Fq>> = boolean_hypercube(2);
+        let three: Vec<Vec<Fq>> = boolean_hypercube(3);
+
+        let expected_one = vec![vec![Fq::from(0)], vec![Fq::from(1)]];
+        let expected_two = vec![
+            vec![Fq::from(0), Fq::from(0)],
+            vec![Fq::from(0), Fq::from(1)],
+            vec![Fq::from(1), Fq::from(0)],
+            vec![Fq::from(1), Fq::from(1)],
+        ];
+        let expected_three = vec![
+            vec![Fq::from(0), Fq::from(0), Fq::from(0)],
+            vec![Fq::from(0), Fq::from(0), Fq::from(1)],
+            vec![Fq::from(0), Fq::from(1), Fq::from(0)],
+            vec![Fq::from(0), Fq::from(1), Fq::from(1)],
+            vec![Fq::from(1), Fq::from(0), Fq::from(0)],
+            vec![Fq::from(1), Fq::from(0), Fq::from(1)],
+            vec![Fq::from(1), Fq::from(1), Fq::from(0)],
+            vec![Fq::from(1), Fq::from(1), Fq::from(1)],
+        ];
+
+        assert_eq!(one, expected_one);
+        assert_eq!(two, expected_two);
+        assert_eq!(three, expected_three);
+    }
+}

@@ -86,35 +86,6 @@ mod tests {
     }
 
     #[test]
-    fn test_boolean_hypercube() {
-        let one: Vec<Vec<Fq>> = boolean_hypercube(1);
-        let two: Vec<Vec<Fq>> = boolean_hypercube(2);
-        let three: Vec<Vec<Fq>> = boolean_hypercube(3);
-
-        let expected_one = vec![vec![Fq::from(0)], vec![Fq::from(1)]];
-        let expected_two = vec![
-            vec![Fq::from(0), Fq::from(0)],
-            vec![Fq::from(1), Fq::from(0)],
-            vec![Fq::from(0), Fq::from(1)],
-            vec![Fq::from(1), Fq::from(1)],
-        ];
-        let expected_three = vec![
-            vec![Fq::from(0), Fq::from(0), Fq::from(0)],
-            vec![Fq::from(1), Fq::from(0), Fq::from(0)],
-            vec![Fq::from(0), Fq::from(1), Fq::from(0)],
-            vec![Fq::from(1), Fq::from(1), Fq::from(0)],
-            vec![Fq::from(0), Fq::from(0), Fq::from(1)],
-            vec![Fq::from(1), Fq::from(0), Fq::from(1)],
-            vec![Fq::from(0), Fq::from(1), Fq::from(1)],
-            vec![Fq::from(1), Fq::from(1), Fq::from(1)],
-        ];
-
-        assert_eq!(one, expected_one);
-        assert_eq!(two, expected_two);
-        assert_eq!(three, expected_three);
-    }
-
-    #[test]
     fn test_skip_first_and_sum_all() {
         let poly1 = Multilinear::new(vec![
             Fq::from(0),
