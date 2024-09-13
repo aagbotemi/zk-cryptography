@@ -489,8 +489,8 @@ mod tests {
             Fq::from(4),
         ]);
 
-        let add_to_front = poly.add_to_front(&1);
-        let add_to_front2 = poly2.add_to_front(&2);
+        let add_to_front = poly.add_to_front(&0);
+        let add_to_front2 = poly2.add_to_front(&1);
         let add_to_back = poly.add_to_back();
 
         assert_eq!(add_to_front, expected_add_to_front_poly);

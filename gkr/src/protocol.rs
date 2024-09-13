@@ -161,7 +161,6 @@ impl GKRProtocol {
 
             let verify_subclaim =
                 MultiComposedSumcheckVerifier::verify_partial(&proof.sumcheck_proofs[i]).unwrap();
-            // println!("verify_subclaim={:?}", verify_subclaim);
 
             let (b, c) = verify_subclaim
                 .challenges
