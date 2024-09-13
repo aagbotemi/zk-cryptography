@@ -114,14 +114,7 @@ pub fn boolean_hypercube<F: PrimeField>(n: usize) -> Vec<Vec<F>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
+    use crate::Fq;
 
     #[test]
     fn test_boolean_hypercube() {

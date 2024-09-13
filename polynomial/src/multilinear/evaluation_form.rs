@@ -83,10 +83,15 @@ impl<F: PrimeField> Multilinear<F> {
             .fold(F::zero(), |acc, val| acc + val)
     }
 
-    pub fn add_to_front(&self) -> Self {
-        let mut res = Vec::with_capacity(self.evaluations.len() * 2);
-        res.extend_from_slice(&self.evaluations);
-        res.extend_from_slice(&self.evaluations);
+    pub fn add_to_front(&self, variable_length: &usize) -> Self {
+        let new_len = 1 << variable_length;
+        let mut res = Vec::with_capacity(new_len);
+
+        for _ in 0..new_len {
+            res.extend_from_slice(&self.evaluations);
+            res.extend_from_slice(&self.evaluations);
+        }
+
         Self::new(res)
     }
 
@@ -102,6 +107,15 @@ impl<F: PrimeField> Multilinear<F> {
         res.extend_from_slice(&first_half);
         res.extend_from_slice(&second_half);
         res.extend_from_slice(&second_half);
+
+        Self::new(res)
+    }
+
+    pub fn duplicate_evaluation(value: &[F]) -> Self {
+        let mut res = Vec::with_capacity(2);
+
+        res.extend_from_slice(&value);
+        res.extend_from_slice(&value);
 
         Self::new(res)
     }
@@ -443,6 +457,7 @@ mod tests {
     #[test]
     fn test_add_to_front_and_back() {
         let poly = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(4), Fq::from(4)]);
+        let poly2 = Multilinear::new(vec![Fq::from(0), Fq::from(4)]);
         let expected_add_to_front_poly = Multilinear::new(vec![
             Fq::from(0),
             Fq::from(0),
@@ -451,6 +466,16 @@ mod tests {
             Fq::from(0),
             Fq::from(0),
             Fq::from(4),
+            Fq::from(4),
+        ]);
+        let expected_add_to_front_poly2 = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(0),
             Fq::from(4),
         ]);
         let expected_add_to_back_poly = Multilinear::new(vec![
@@ -464,11 +489,13 @@ mod tests {
             Fq::from(4),
         ]);
 
-        let add_to_front = poly.add_to_front();
+        let add_to_front = poly.add_to_front(&1);
+        let add_to_front2 = poly2.add_to_front(&2);
         let add_to_back = poly.add_to_back();
 
         assert_eq!(add_to_front, expected_add_to_front_poly);
-        assert_eq!(add_to_back, expected_add_to_back_poly)
+        assert_eq!(add_to_front2, expected_add_to_front_poly2);
+        assert_eq!(add_to_back, expected_add_to_back_poly);
     }
 
     #[test]
@@ -506,5 +533,15 @@ mod tests {
 
         let res1 = poly1 - poly2;
         assert_eq!(res1, poly3);
+    }
+
+    #[test]
+    fn test_duplicate_evaluation() {
+        let value = vec![Fq::from(11)];
+        let duplicate = Multilinear::duplicate_evaluation(&value);
+
+        let expected_poly = Multilinear::new(vec![Fq::from(11), Fq::from(11)]);
+
+        assert_eq!(duplicate, expected_poly)
     }
 }
