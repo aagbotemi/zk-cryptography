@@ -1,5 +1,5 @@
-use ark_ec::pairing::Pairing;
-use ark_ff::{One, PrimeField};
+use ark_ec::pairing::{Pairing, PairingOutput};
+use ark_ff::{PrimeField, Zero};
 use polynomial::{Multilinear, MultilinearTrait};
 
 pub fn get_poly_remainder<F: PrimeField>(
@@ -13,9 +13,7 @@ pub fn get_poly_quotient<F: PrimeField>(poly: &Multilinear<F>) -> Multilinear<F>
     let f_1 = poly.partial_evaluation(&F::from(1_u8), &0);
     let f_0 = poly.partial_evaluation(&F::from(0_u8), &0);
 
-    let res = f_1 - f_0;
-
-    res
+    f_1 - f_0
 }
 
 pub fn check_for_zero_and_one<F: PrimeField>(bh: &[F], value: &[F]) -> F {
@@ -45,19 +43,18 @@ pub fn sum_pairing_results<P: Pairing>(
     v1: Vec<P::G2>,
     v2: Vec<P::G2>,
     v3: Vec<P::G1>,
-) -> P::TargetField {
-    let mut product = P::TargetField::one();
+) -> PairingOutput<P> {
+    let mut sum = PairingOutput::zero();
 
     assert_eq!(v1.len(), v2.len(), "Length mismatch");
     assert_eq!(v1.len(), v3.len(), "Length mismatch");
 
     for ((g2_a, g2_b), g1_c) in v1.iter().zip(v2.iter()).zip(v3.iter()) {
-        let pairing_result = P::pairing(g1_c, *g2_a - *g2_b);
-
-        product += pairing_result; // @TODO: fix here
+        let pairing_result = P::pairing(g1_c, &(*g2_a - *g2_b));
+        sum += pairing_result;
     }
 
-    product
+    sum
 }
 
 #[cfg(test)]
