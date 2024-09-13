@@ -1,6 +1,6 @@
 use crate::{interface::MultilinearTrait, utils::pick_pairs_with_random_index};
 use ark_ff::{BigInteger, PrimeField};
-use std::ops::{Add, AddAssign, Mul};
+use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Multilinear<F: PrimeField> {
@@ -81,6 +81,43 @@ impl<F: PrimeField> Multilinear<F> {
         self.evaluations
             .iter()
             .fold(F::zero(), |acc, val| acc + val)
+    }
+
+    pub fn add_to_front(&self, variable_length: &usize) -> Self {
+        let new_len = 1 << variable_length;
+        let mut res = Vec::with_capacity(new_len);
+
+        for _ in 0..new_len {
+            res.extend_from_slice(&self.evaluations);
+            res.extend_from_slice(&self.evaluations);
+        }
+
+        Self::new(res)
+    }
+
+    pub fn add_to_back(&self) -> Self {
+        let len = self.evaluations.len();
+        let mut res = Vec::with_capacity(len * 2);
+
+        let mid_point: usize = len / 2;
+        let first_half: Vec<F> = self.evaluations[..mid_point].to_vec();
+        let second_half: Vec<F> = self.evaluations[mid_point..].to_vec();
+
+        res.extend_from_slice(&first_half);
+        res.extend_from_slice(&first_half);
+        res.extend_from_slice(&second_half);
+        res.extend_from_slice(&second_half);
+
+        Self::new(res)
+    }
+
+    pub fn duplicate_evaluation(value: &[F]) -> Self {
+        let mut res = Vec::with_capacity(2);
+
+        res.extend_from_slice(&value);
+        res.extend_from_slice(&value);
+
+        Self::new(res)
     }
 }
 
@@ -171,6 +208,32 @@ impl<F: PrimeField> AddAssign for Multilinear<F> {
     }
 }
 
+impl<F: PrimeField> Sub for Multilinear<F> {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let lhs = self.evaluations;
+        let mut res = vec![];
+
+        for i in 0..lhs.len() {
+            res.push(lhs[i] - rhs.evaluations[i])
+        }
+
+        Self {
+            n_vars: self.n_vars,
+            evaluations: res,
+        }
+    }
+}
+
+impl<F: PrimeField> SubAssign for Multilinear<F> {
+    fn sub_assign(&mut self, other: Self) {
+        for i in 0..self.evaluations.len() {
+            self.evaluations[i] -= other.evaluations[i];
+        }
+    }
+}
+
 impl<F: PrimeField> Mul<F> for Multilinear<F> {
     type Output = Self;
 
@@ -193,14 +256,7 @@ impl<F: PrimeField> Mul<F> for Multilinear<F> {
 mod tests {
     use crate::interface::MultilinearTrait;
     use crate::multilinear::evaluation_form::Multilinear;
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
+    use crate::Fq;
 
     #[test]
     fn test_add_mul_distinct() {
@@ -396,5 +452,96 @@ mod tests {
             res == Fq::from(36),
             "Incorrect sum over the boolean hypercube"
         );
+    }
+
+    #[test]
+    fn test_add_to_front_and_back() {
+        let poly = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(4), Fq::from(4)]);
+        let poly2 = Multilinear::new(vec![Fq::from(0), Fq::from(4)]);
+        let expected_add_to_front_poly = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(4),
+        ]);
+        let expected_add_to_front_poly2 = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(0),
+            Fq::from(4),
+        ]);
+        let expected_add_to_back_poly = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(4),
+        ]);
+
+        let add_to_front = poly.add_to_front(&1);
+        let add_to_front2 = poly2.add_to_front(&2);
+        let add_to_back = poly.add_to_back();
+
+        assert_eq!(add_to_front, expected_add_to_front_poly);
+        assert_eq!(add_to_front2, expected_add_to_front_poly2);
+        assert_eq!(add_to_back, expected_add_to_back_poly);
+    }
+
+    #[test]
+    fn test_poly_subtraction() {
+        let poly1 = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(5),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(7),
+            Fq::from(12),
+        ]);
+        let poly2 = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(2),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(1),
+            Fq::from(3),
+        ]);
+        let poly3 = Multilinear::new(vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(3),
+            Fq::from(4),
+            Fq::from(4),
+            Fq::from(6),
+            Fq::from(9),
+        ]);
+
+        let res1 = poly1 - poly2;
+        assert_eq!(res1, poly3);
+    }
+
+    #[test]
+    fn test_duplicate_evaluation() {
+        let value = vec![Fq::from(11)];
+        let duplicate = Multilinear::duplicate_evaluation(&value);
+
+        let expected_poly = Multilinear::new(vec![Fq::from(11), Fq::from(11)]);
+
+        assert_eq!(duplicate, expected_poly)
     }
 }

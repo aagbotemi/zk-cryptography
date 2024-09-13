@@ -1,25 +1,8 @@
 use ark_ff::{BigInteger, PrimeField};
 use polynomial::{
-    interface::MultilinearTrait, ComposedMultilinear, ComposedMultilinearTrait, Multilinear,
+    interface::MultilinearTrait, utils::boolean_hypercube, ComposedMultilinear,
+    ComposedMultilinearTrait, Multilinear,
 };
-
-pub fn boolean_hypercube<F: PrimeField>(n: usize) -> Vec<Vec<F>> {
-    let mut hypercube = Vec::new();
-
-    for i in 0..(1 << n) {
-        let mut vertex = Vec::new();
-        for j in 0..n {
-            if (i & (1 << j)) != 0 {
-                vertex.push(F::one());
-            } else {
-                vertex.push(F::zero());
-            }
-        }
-        hypercube.push(vertex);
-    }
-
-    hypercube
-}
 
 pub fn convert_field_to_byte<F: PrimeField>(element: &F) -> Vec<u8> {
     element.into_bigint().to_bytes_be()
@@ -101,35 +84,6 @@ mod tests {
         assert_eq!(one, expected_one);
         assert_eq!(hundred, expected_hundred);
         assert_ne!(ninety, incorrect_ninety);
-    }
-
-    #[test]
-    fn test_boolean_hypercube() {
-        let one: Vec<Vec<Fq>> = boolean_hypercube(1);
-        let two: Vec<Vec<Fq>> = boolean_hypercube(2);
-        let three: Vec<Vec<Fq>> = boolean_hypercube(3);
-
-        let expected_one = vec![vec![Fq::from(0)], vec![Fq::from(1)]];
-        let expected_two = vec![
-            vec![Fq::from(0), Fq::from(0)],
-            vec![Fq::from(1), Fq::from(0)],
-            vec![Fq::from(0), Fq::from(1)],
-            vec![Fq::from(1), Fq::from(1)],
-        ];
-        let expected_three = vec![
-            vec![Fq::from(0), Fq::from(0), Fq::from(0)],
-            vec![Fq::from(1), Fq::from(0), Fq::from(0)],
-            vec![Fq::from(0), Fq::from(1), Fq::from(0)],
-            vec![Fq::from(1), Fq::from(1), Fq::from(0)],
-            vec![Fq::from(0), Fq::from(0), Fq::from(1)],
-            vec![Fq::from(1), Fq::from(0), Fq::from(1)],
-            vec![Fq::from(0), Fq::from(1), Fq::from(1)],
-            vec![Fq::from(1), Fq::from(1), Fq::from(1)],
-        ];
-
-        assert_eq!(one, expected_one);
-        assert_eq!(two, expected_two);
-        assert_eq!(three, expected_three);
     }
 
     #[test]
