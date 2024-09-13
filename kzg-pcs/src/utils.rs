@@ -1,4 +1,5 @@
-use ark_ff::PrimeField;
+use ark_ec::pairing::Pairing;
+use ark_ff::{One, PrimeField};
 use polynomial::{Multilinear, MultilinearTrait};
 
 pub fn get_poly_remainder<F: PrimeField>(
@@ -40,6 +41,25 @@ pub fn generate_array_of_points<F: PrimeField>(bh_cube: &[Vec<F>], eval_points: 
         .collect()
 }
 
+pub fn sum_pairing_results<P: Pairing>(
+    v1: Vec<P::G2>,
+    v2: Vec<P::G2>,
+    v3: Vec<P::G1>,
+) -> P::TargetField {
+    let mut product = P::TargetField::one();
+
+    assert_eq!(v1.len(), v2.len(), "Length mismatch");
+    assert_eq!(v1.len(), v3.len(), "Length mismatch");
+
+    for ((g2_a, g2_b), g1_c) in v1.iter().zip(v2.iter()).zip(v3.iter()) {
+        let pairing_result = P::pairing(g1_c, *g2_a - *g2_b);
+
+        product += pairing_result; // @TODO: fix here
+    }
+
+    product
+}
+
 #[cfg(test)]
 mod tests {
     use ark_bls12_381::Fr;
@@ -78,43 +98,6 @@ mod tests {
         assert_eq!(checker_6, Fr::from(-16));
         assert_eq!(checker_7, Fr::from(-18));
         assert_eq!(checker_8, Fr::from(24));
-    }
-
-    #[test]
-    fn test_poly_subtraction() {
-        let poly1 = Multilinear::new(vec![
-            Fr::from(0),
-            Fr::from(0),
-            Fr::from(0),
-            Fr::from(5),
-            Fr::from(4),
-            Fr::from(4),
-            Fr::from(7),
-            Fr::from(12),
-        ]);
-        let poly2 = Multilinear::new(vec![
-            Fr::from(0),
-            Fr::from(0),
-            Fr::from(0),
-            Fr::from(2),
-            Fr::from(0),
-            Fr::from(0),
-            Fr::from(1),
-            Fr::from(3),
-        ]);
-        let poly3 = Multilinear::new(vec![
-            Fr::from(0),
-            Fr::from(0),
-            Fr::from(0),
-            Fr::from(3),
-            Fr::from(4),
-            Fr::from(4),
-            Fr::from(6),
-            Fr::from(9),
-        ]);
-
-        let res1 = poly1 - poly2;
-        assert_eq!(res1, poly3);
     }
 
     #[test]

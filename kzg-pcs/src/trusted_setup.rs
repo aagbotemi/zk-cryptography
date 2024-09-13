@@ -17,7 +17,7 @@ impl<P: Pairing> TrustedSetup<P> {
         F: PrimeField,
         P: Pairing,
     {
-        let powers_of_tau_in_g1: Vec<P::G1> = Self::generate_powers_of_tau_in_g1(&eval_points);
+        let powers_of_tau_in_g1 = Self::generate_powers_of_tau_in_g1(&eval_points);
         let powers_of_tau_in_g2: Vec<P::G2> = Self::generate_powers_of_tau_in_g2(&eval_points);
 
         TrustedSetup {
@@ -26,7 +26,6 @@ impl<P: Pairing> TrustedSetup<P> {
         }
     }
 
-    #[inline]
     fn generate_powers_of_tau_in_g1<F: PrimeField>(eval_points: &[F]) -> Vec<P::G1> {
         let g1 = P::G1::generator();
 
@@ -39,8 +38,7 @@ impl<P: Pairing> TrustedSetup<P> {
             .collect()
     }
 
-    #[inline]
-    fn generate_powers_of_tau_in_g2<F: PrimeField>(eval_points: &[F]) -> Vec<P::G2> {
+    pub fn generate_powers_of_tau_in_g2<F: PrimeField>(eval_points: &[F]) -> Vec<P::G2> {
         let g2 = P::G2::generator();
 
         eval_points
