@@ -6,5 +6,5 @@ members = [
     "fiat-shamir-transcript", "field",
     "polynomial",
     "shamir-secret-sharing",
-    "sumcheck", "kzg-pcs",
+    "sumcheck", "multilinear-kzg",
 ]

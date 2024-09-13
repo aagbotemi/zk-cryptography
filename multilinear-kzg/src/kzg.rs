@@ -1,15 +1,18 @@
+use ark_ec::{pairing::Pairing, Group};
+use ark_ff::{PrimeField, Zero};
+use std::marker::PhantomData;
+
+use polynomial::{Multilinear, MultilinearTrait};
+
 use crate::{
+    interface::{MultilinearKZGInterface, TrustedSetupInterface},
     trusted_setup::TrustedSetup,
     utils::{get_poly_quotient, get_poly_remainder, sum_pairing_results},
 };
 
-use ark_bls12_381::{Bls12_381, Config};
-use ark_ec::{bls12::G1Projective, pairing::Pairing, Group};
-use ark_ff::{PrimeField, Zero};
-
-use polynomial::{Multilinear, MultilinearTrait};
-
-pub struct MultilinearKZG {}
+pub struct MultilinearKZG<P: Pairing> {
+    _marker: PhantomData<P>,
+}
 
 #[derive(Debug)]
 pub struct MultilinearKZGProof<P: Pairing> {
@@ -17,11 +20,8 @@ pub struct MultilinearKZGProof<P: Pairing> {
     pub proofs: Vec<P::G1>,
 }
 
-impl MultilinearKZG {
-    fn commitment<P: Pairing>(
-        poly: &Multilinear<P::ScalarField>,
-        powers_of_tau_in_g1: &Vec<P::G1>,
-    ) -> P::G1
+impl<P: Pairing> MultilinearKZGInterface<P> for MultilinearKZG<P> {
+    fn commitment(poly: &Multilinear<P::ScalarField>, powers_of_tau_in_g1: &Vec<P::G1>) -> P::G1
     where
         P: Pairing,
     {
@@ -41,7 +41,7 @@ impl MultilinearKZG {
             .sum()
     }
 
-    fn open<P: Pairing>(
+    fn open(
         poly_: &Multilinear<P::ScalarField>,
         evaluation_points: &[P::ScalarField],
         powers_of_tau_in_g1: &Vec<P::G1>,
@@ -53,47 +53,35 @@ impl MultilinearKZG {
         let mut final_round_remainder = P::ScalarField::zero();
 
         for (variable_index, eval_point) in evaluation_points.iter().enumerate() {
-            dbg!(&variable_index);
             let mut remainder = Multilinear::additive_identity(variable_index);
             let mut quotient = Multilinear::additive_identity(variable_index);
             let mut blown_poly = Multilinear::additive_identity(variable_index);
 
             if variable_index != evaluation_points.len() - 1 {
                 quotient = get_poly_quotient(&poly);
-                dbg!(&quotient);
                 remainder = get_poly_remainder(&poly, &eval_point);
-                dbg!(&remainder);
                 blown_poly = quotient.add_to_front(&(variable_index));
-                dbg!(&blown_poly);
             } else {
                 quotient = get_poly_quotient(&poly);
-                dbg!(&quotient);
                 final_round_remainder = poly.evaluation(&[*eval_point]);
-                dbg!(&final_round_remainder);
 
                 let duplicate_poly = Multilinear::duplicate_evaluation(&quotient.evaluations);
-                dbg!(&duplicate_poly);
                 blown_poly = duplicate_poly.add_to_front(&(variable_index - 1));
-                dbg!(&blown_poly);
             }
 
-            let proof = MultilinearKZG::commitment::<P>(&blown_poly, &powers_of_tau_in_g1);
-            dbg!(&proof);
+            let proof = MultilinearKZG::<P>::commitment(&blown_poly, &powers_of_tau_in_g1);
             poly = remainder;
-            dbg!(&poly);
             proofs.push(proof);
-            dbg!(&proofs);
         }
 
         if evaluation != final_round_remainder {
             panic!("Evaluation and final remainder mismatch!");
         }
-        dbg!(&evaluation, final_round_remainder);
 
         MultilinearKZGProof { evaluation, proofs }
     }
 
-    pub fn verify<P: Pairing>(
+    fn verify(
         commit: &P::G1,
         verifier_points: &[P::ScalarField],
         proof: &MultilinearKZGProof<P>,
@@ -101,25 +89,19 @@ impl MultilinearKZG {
     ) -> bool {
         let g1 = P::G1::generator();
         let g2 = P::G2::generator();
-        dbg!(&g1, &g2);
 
         // LHS
         let v = g1.mul_bigint(proof.evaluation.into_bigint());
-        dbg!(&v);
         let lhs = P::pairing(*commit - v, g2);
 
         // RHS
         let verifier_point_powers_of_tau_in_g2: Vec<P::G2> =
-            TrustedSetup::generate_powers_of_tau_in_g2::<P>(verifier_points);
-        dbg!(&verifier_point_powers_of_tau_in_g2);
-
+            TrustedSetup::<P>::generate_powers_of_tau_in_g2(verifier_points);
         let rhs = sum_pairing_results::<P>(
-            verifier_point_powers_of_tau_in_g2,
             powers_of_tau_in_g2,
+            verifier_point_powers_of_tau_in_g2,
             proof.proofs.clone(),
         );
-
-        dbg!(&lhs, &rhs);
 
         lhs == rhs
     }
@@ -131,10 +113,14 @@ mod tests {
     use polynomial::Multilinear;
 
     use super::MultilinearKZG;
-    use crate::{kzg::MultilinearKZGProof, trusted_setup::TrustedSetup};
+    use crate::{
+        interface::TrustedSetupInterface,
+        kzg::{MultilinearKZGInterface, MultilinearKZGProof},
+        trusted_setup::TrustedSetup,
+    };
 
     #[test]
-    fn test_kzg() {
+    fn test_kzg_1() {
         let prover_points = vec![Fr::from(2), Fr::from(3), Fr::from(4)];
         let verifier_points = vec![Fr::from(5), Fr::from(9), Fr::from(6)];
 
@@ -149,18 +135,60 @@ mod tests {
             Fr::from(9),
         ];
         let poly = Multilinear::new(val);
-
-        let (powers_of_tau_in_g1, powers_of_tau_in_g2) =
-            TrustedSetup::setup::<Bls12_381>(&prover_points);
-
-        let commit = MultilinearKZG::commitment::<Bls12_381>(&poly, &powers_of_tau_in_g1);
+        let tau = TrustedSetup::<Bls12_381>::setup(&prover_points);
+        let commit = MultilinearKZG::<Bls12_381>::commitment(&poly, &tau.powers_of_tau_in_g1);
 
         let proof: MultilinearKZGProof<Bls12_381> =
-            MultilinearKZG::open(&poly, &verifier_points, &powers_of_tau_in_g1);
-
+            MultilinearKZG::open(&poly, &verifier_points, &tau.powers_of_tau_in_g1);
         let verify_status =
-            MultilinearKZG::verify(&commit, &verifier_points, &proof, powers_of_tau_in_g2);
+            MultilinearKZG::verify(&commit, &verifier_points, &proof, tau.powers_of_tau_in_g2);
 
         assert_eq!(verify_status, true)
+    }
+
+    #[test]
+    fn test_kzg_2() {
+        let prover_points = vec![Fr::from(12), Fr::from(9), Fr::from(28), Fr::from(40)];
+        let tampered_prover_points = vec![Fr::from(12), Fr::from(19), Fr::from(28), Fr::from(40)];
+        let verifier_points = vec![Fr::from(54), Fr::from(90), Fr::from(76), Fr::from(160)];
+
+        // 4ac + 10bc + 2cd - 12ad
+        let value = vec![
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(2),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(10),
+            Fr::from(12),
+            Fr::from(0),
+            Fr::from(-12),
+            Fr::from(4),
+            Fr::from(-6),
+            Fr::from(0),
+            Fr::from(-12),
+            Fr::from(14),
+            Fr::from(4),
+        ];
+
+        let poly = Multilinear::new(value);
+        let tau = TrustedSetup::<Bls12_381>::setup(&prover_points);
+        let tampered_tau = TrustedSetup::<Bls12_381>::setup(&tampered_prover_points);
+        let commit = MultilinearKZG::<Bls12_381>::commitment(&poly, &tau.powers_of_tau_in_g1);
+
+        let proof: MultilinearKZGProof<Bls12_381> =
+            MultilinearKZG::open(&poly, &verifier_points, &tau.powers_of_tau_in_g1);
+        let verify_status =
+            MultilinearKZG::verify(&commit, &verifier_points, &proof, tau.powers_of_tau_in_g2);
+        let tampered_tau_verify_status = MultilinearKZG::verify(
+            &commit,
+            &verifier_points,
+            &proof,
+            tampered_tau.powers_of_tau_in_g2,
+        );
+
+        assert_eq!(verify_status, true);
+        assert_eq!(tampered_tau_verify_status, false);
     }
 }
