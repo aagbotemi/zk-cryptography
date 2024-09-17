@@ -11,3 +11,4 @@ description = "This is a utils library for working with the Shamir Secret Sharin
 polynomial = { path = "../polynomial" }
 ark-ff = "0.4.2"
 rand = "0.8.5"
+ark-bls12-381 = "0.4.0"

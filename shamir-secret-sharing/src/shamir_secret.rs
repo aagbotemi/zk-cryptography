@@ -39,27 +39,19 @@ pub fn reconstruct_secret<F: PrimeField>(shares: &[(F, F)], point: F) -> F {
 
 #[cfg(test)]
 mod tests {
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
-
     use crate::shamir_secret::{create_shares, reconstruct_secret};
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
+    use ark_bls12_381::Fr;
 
     #[test]
     fn test_create_shares_and_reconstruct_secret() {
-        let secret = Fq::from(123u64);
+        let secret = Fr::from(123u64);
         let threshold = 3;
         let total_shares = 5;
 
         let shares = create_shares(secret, threshold, total_shares);
         let picked_points = shares[..threshold].to_vec();
 
-        let reconstruct_at = Fq::from(0);
+        let reconstruct_at = Fr::from(0);
         let reconstructed_secret = reconstruct_secret(&picked_points, reconstruct_at);
 
         assert_eq!(secret, reconstructed_secret)
@@ -67,14 +59,14 @@ mod tests {
 
     #[test]
     fn test_create_shares_and_reconstruct_secret_2() {
-        let secret = Fq::from(102057);
+        let secret = Fr::from(102057);
         let threshold = 17; // threshold should be equal to or less than the modulus
         let total_shares = 40;
 
         let shares = create_shares(secret, threshold, total_shares);
         let picked_points = shares[..threshold].to_vec();
 
-        let reconstruct_at = Fq::from(0);
+        let reconstruct_at = Fr::from(0);
         let reconstructed_secret = reconstruct_secret(&picked_points, reconstruct_at);
 
         assert_eq!(secret, reconstructed_secret)
@@ -83,7 +75,7 @@ mod tests {
     #[test]
     #[ignore = "reconstruct secret above threshold is failing, will fix later"]
     fn test_create_shares_and_reconstruct_secret_fail_with_points_above_and_below_threshold() {
-        let secret = Fq::from(20);
+        let secret = Fr::from(20);
         let threshold = 3;
         let total_shares = 5;
 
@@ -92,7 +84,7 @@ mod tests {
         let picked_points_above_threshold = shares[..4].to_vec();
         let picked_points_below_threshold = shares[..2].to_vec();
 
-        let reconstruct_at = Fq::from(0);
+        let reconstruct_at = Fr::from(0);
         let reconstructed_secret_above_threshold =
             reconstruct_secret(&picked_points_above_threshold, reconstruct_at);
         let reconstructed_secret_below_threshold =
