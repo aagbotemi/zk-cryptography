@@ -186,42 +186,35 @@ mod tests {
     use crate::sumcheck;
 
     use super::*;
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
+    use ark_test_curves::bls12_381::Fr;
     use polynomial::interface::MultilinearTrait;
     use polynomial::Multilinear;
 
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
-
     #[test]
     fn test_sum_calculation() {
-        let mle1 = Multilinear::new(vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(3)]);
-        let mle2 = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
+        let mle1 = Multilinear::new(vec![Fr::from(0), Fr::from(1), Fr::from(2), Fr::from(3)]);
+        let mle2 = Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(0), Fr::from(1)]);
         let composedmle1 = ComposedMultilinear::new(vec![mle1]);
         let composedmle2 = ComposedMultilinear::new(vec![mle2]);
 
         let multi_composed_vec_1 = vec![composedmle1, composedmle2];
         let sum_1 = MultiComposedSumcheckProver::calculate_poly_sum(&multi_composed_vec_1);
-        assert_eq!(sum_1, Fq::from(7));
+        assert_eq!(sum_1, Fr::from(7));
 
-        let mle3 = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(2)]);
-        let mle4 = Multilinear::new(vec![Fq::from(0), Fq::from(3), Fq::from(0), Fq::from(3)]);
+        let mle3 = Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(0), Fr::from(2)]);
+        let mle4 = Multilinear::new(vec![Fr::from(0), Fr::from(3), Fr::from(0), Fr::from(3)]);
         let composedmle3 = ComposedMultilinear::new(vec![mle3]);
         let composedmle4 = ComposedMultilinear::new(vec![mle4]);
 
         let multi_composed_vec_2 = vec![composedmle3, composedmle4];
         let sum_2 = MultiComposedSumcheckProver::calculate_poly_sum(&multi_composed_vec_2);
-        assert_eq!(sum_2, Fq::from(8));
+        assert_eq!(sum_2, Fr::from(8));
     }
 
     #[test]
     fn test_multi_composed_sumcheck_proof() {
-        let poly1 = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(2)]);
-        let poly2 = Multilinear::new(vec![Fq::from(0), Fq::from(3), Fq::from(0), Fq::from(3)]);
+        let poly1 = Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(0), Fr::from(2)]);
+        let poly2 = Multilinear::new(vec![Fr::from(0), Fr::from(3), Fr::from(0), Fr::from(3)]);
 
         let composed_1 = ComposedMultilinear::new(vec![poly1]);
         let composed_2 = ComposedMultilinear::new(vec![poly2]);
@@ -236,8 +229,8 @@ mod tests {
 
     #[test]
     fn test_multi_composed_sumcheck_proof_1() {
-        let poly1 = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(2)]);
-        let poly2 = Multilinear::new(vec![Fq::from(0), Fq::from(3), Fq::from(0), Fq::from(3)]);
+        let poly1 = Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(0), Fr::from(2)]);
+        let poly2 = Multilinear::new(vec![Fr::from(0), Fr::from(3), Fr::from(0), Fr::from(3)]);
 
         let composed_1 = ComposedMultilinear::new(vec![poly1]);
         let composed_2 = ComposedMultilinear::new(vec![poly2.clone()]);
@@ -252,8 +245,8 @@ mod tests {
 
     #[test]
     fn test_multi_composed_sum_check_proof_2() {
-        let poly1 = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(2)]);
-        let poly2 = Multilinear::new(vec![Fq::from(0), Fq::from(3), Fq::from(0), Fq::from(3)]);
+        let poly1 = Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(0), Fr::from(2)]);
+        let poly2 = Multilinear::new(vec![Fr::from(0), Fr::from(3), Fr::from(0), Fr::from(3)]);
 
         let composed_1 = ComposedMultilinear::new(vec![poly1.clone(), poly2.clone()]);
         let composed_2 = ComposedMultilinear::new(vec![poly2.clone(), poly1.clone()]);
@@ -268,38 +261,38 @@ mod tests {
     #[test]
     fn test_multi_composed_sum_check_proof_2_on_gkr_example() {
         // f(a,b,c) = 2abc + 3b + 4
-        let add_i = Multilinear::<Fq>::new(vec![
-            Fq::from(4),
-            Fq::from(4),
-            Fq::from(7),
-            Fq::from(7),
-            Fq::from(4),
-            Fq::from(4),
-            Fq::from(7),
-            Fq::from(9),
+        let add_i = Multilinear::<Fr>::new(vec![
+            Fr::from(4),
+            Fr::from(4),
+            Fr::from(7),
+            Fr::from(7),
+            Fr::from(4),
+            Fr::from(4),
+            Fr::from(7),
+            Fr::from(9),
         ]);
         // f(b) = 4b
-        let w_b = Multilinear::<Fq>::new(vec![Fq::from(0), Fq::from(4)]);
+        let w_b = Multilinear::<Fr>::new(vec![Fr::from(0), Fr::from(4)]);
         // f(c) = 3c
-        let w_c = Multilinear::<Fq>::new(vec![Fq::from(0), Fq::from(3)]);
+        let w_c = Multilinear::<Fr>::new(vec![Fr::from(0), Fr::from(3)]);
         // f(a,b,c) = 2ab + bc + 3
-        let mul_i = Multilinear::<Fq>::new(vec![
-            Fq::from(3),
-            Fq::from(3),
-            Fq::from(3),
-            Fq::from(4),
-            Fq::from(3),
-            Fq::from(3),
-            Fq::from(5),
-            Fq::from(6),
+        let mul_i = Multilinear::<Fr>::new(vec![
+            Fr::from(3),
+            Fr::from(3),
+            Fr::from(3),
+            Fr::from(4),
+            Fr::from(3),
+            Fr::from(3),
+            Fr::from(5),
+            Fr::from(6),
         ]);
 
         let lhs_poly = ComposedMultilinear::new(vec![
-            add_i.partial_evaluation(&Fq::from(2), &0),
+            add_i.partial_evaluation(&Fr::from(2), &0),
             w_b.add_distinct(&w_c),
         ]);
         let rhs_poly = ComposedMultilinear::new(vec![
-            mul_i.partial_evaluation(&Fq::from(2), &0),
+            mul_i.partial_evaluation(&Fr::from(2), &0),
             w_b.mul_distinct(&w_c),
         ]);
 

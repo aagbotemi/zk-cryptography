@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::multilinear::coefficient_form::MultiLinearMonomial;
 use ark_ff::PrimeField;
 

@@ -97,44 +97,38 @@ impl<F: PrimeField> Sumcheck<F> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
+    use ark_test_curves::bls12_381::Fr;
 
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
+    use super::*;
 
     #[test]
     fn test_sum_calculation() {
         let poly = Multilinear::new(vec![
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(4),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(4),
         ]);
         let mut prover = Sumcheck::new(poly);
         prover.poly_sum();
-        assert_eq!(prover.sum, Fq::from(12));
+        assert_eq!(prover.sum, Fr::from(12));
     }
 
     #[test]
     fn test_sum_check_proof() {
         let poly = Multilinear::new(vec![
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(2),
-            Fq::from(7),
-            Fq::from(3),
-            Fq::from(3),
-            Fq::from(6),
-            Fq::from(11),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(2),
+            Fr::from(7),
+            Fr::from(3),
+            Fr::from(3),
+            Fr::from(6),
+            Fr::from(11),
         ]);
         let mut sumcheck = Sumcheck::new(poly);
         sumcheck.poly_sum();
@@ -147,22 +141,22 @@ mod tests {
     #[test]
     fn test_sum_check_proof_2() {
         let poly = Multilinear::new(vec![
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(1),
-            Fq::from(1),
-            Fq::from(1),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(1),
+            Fr::from(1),
+            Fr::from(1),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
         ]);
         let mut sumcheck = Sumcheck::new(poly);
         sumcheck.poly_sum();
@@ -175,22 +169,22 @@ mod tests {
     #[test]
     fn test_sum_check_proof_3() {
         let poly = Multilinear::new(vec![
-            Fq::from(1),
-            Fq::from(3),
-            Fq::from(5),
-            Fq::from(7),
-            Fq::from(2),
-            Fq::from(4),
-            Fq::from(6),
-            Fq::from(8),
-            Fq::from(3),
-            Fq::from(5),
-            Fq::from(7),
-            Fq::from(9),
-            Fq::from(4),
-            Fq::from(6),
-            Fq::from(8),
-            Fq::from(10),
+            Fr::from(1),
+            Fr::from(3),
+            Fr::from(5),
+            Fr::from(7),
+            Fr::from(2),
+            Fr::from(4),
+            Fr::from(6),
+            Fr::from(8),
+            Fr::from(3),
+            Fr::from(5),
+            Fr::from(7),
+            Fr::from(9),
+            Fr::from(4),
+            Fr::from(6),
+            Fr::from(8),
+            Fr::from(10),
         ]);
         let mut sumcheck = Sumcheck::new(poly);
         sumcheck.poly_sum();

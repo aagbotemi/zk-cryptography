@@ -1,13 +1,10 @@
+use crate::utils::{generate_layer_one_prove_sumcheck, generate_layer_one_verify_sumcheck, w_mle};
 use ark_ff::PrimeField;
+use circuit::circuit::Circuit;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
 use polynomial::{ComposedMultilinear, Multilinear, MultilinearTrait};
 use sumcheck::composed::multi_composed_sumcheck::{
     ComposedSumcheckProof, MultiComposedSumcheckProver, MultiComposedSumcheckVerifier,
-};
-
-use crate::{
-    circuit::Circuit,
-    utils::{generate_layer_one_prove_sumcheck, generate_layer_one_verify_sumcheck, w_mle},
 };
 
 pub struct GKRProof<F: PrimeField> {
@@ -198,21 +195,13 @@ impl GKRProtocol {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use ark_test_curves::bls12_381::Fr;
+    use circuit::{
         circuit::CircuitLayer,
         gate::{Gate, GateType},
     };
 
     use super::*;
-
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
 
     #[test]
     fn test_gkr_protocol_1() {
@@ -223,16 +212,16 @@ mod tests {
         ]);
         let circuit = Circuit::new(vec![layer_0, layer_1]);
         let input = vec![
-            Fq::from(2u32),
-            Fq::from(3u32),
-            Fq::from(4u32),
-            Fq::from(5u32),
+            Fr::from(2u32),
+            Fr::from(3u32),
+            Fr::from(4u32),
+            Fr::from(5u32),
         ];
 
         let proof = GKRProtocol::prove(&circuit, &input);
         let verify = GKRProtocol::verify(&circuit, &input, &proof);
 
-        assert!(verify);
+        assert_eq!(verify, true);
     }
 
     #[test]
@@ -261,27 +250,27 @@ mod tests {
 
         let circuit = Circuit::new(vec![layer_0, layer_1, layer_3, layer_4]);
         let input = [
-            Fq::from(2u32),
-            Fq::from(1u32),
-            Fq::from(3u32),
-            Fq::from(1u32),
-            Fq::from(4u32),
-            Fq::from(1u32),
-            Fq::from(2u32),
-            Fq::from(2u32),
-            Fq::from(3u32),
-            Fq::from(3u32),
-            Fq::from(4u32),
-            Fq::from(4u32),
-            Fq::from(2u32),
-            Fq::from(3u32),
-            Fq::from(3u32),
-            Fq::from(4u32),
+            Fr::from(2u32),
+            Fr::from(1u32),
+            Fr::from(3u32),
+            Fr::from(1u32),
+            Fr::from(4u32),
+            Fr::from(1u32),
+            Fr::from(2u32),
+            Fr::from(2u32),
+            Fr::from(3u32),
+            Fr::from(3u32),
+            Fr::from(4u32),
+            Fr::from(4u32),
+            Fr::from(2u32),
+            Fr::from(3u32),
+            Fr::from(3u32),
+            Fr::from(4u32),
         ];
 
         let evaluation = circuit.evaluation(&input);
 
-        assert_eq!(evaluation[0][0], Fq::from(224u32));
+        assert_eq!(evaluation[0][0], Fr::from(224u32));
 
         let proof = GKRProtocol::prove(&circuit, &input.to_vec());
 

@@ -20,6 +20,15 @@ pub struct MultilinearKZGProof<P: Pairing> {
     pub proofs: Vec<P::G1>,
 }
 
+impl<P: Pairing> Default for MultilinearKZGProof<P> {
+    fn default() -> Self {
+        MultilinearKZGProof {
+            evaluation: Default::default(),
+            proofs: Default::default(),
+        }
+    }
+}
+
 impl<P: Pairing> MultilinearKZGInterface<P> for MultilinearKZG<P> {
     fn commitment(poly: &Multilinear<P::ScalarField>, powers_of_tau_in_g1: &Vec<P::G1>) -> P::G1
     where
@@ -54,8 +63,8 @@ impl<P: Pairing> MultilinearKZGInterface<P> for MultilinearKZG<P> {
 
         for (variable_index, eval_point) in evaluation_points.iter().enumerate() {
             let mut remainder = Multilinear::additive_identity(variable_index);
-            let mut quotient = Multilinear::additive_identity(variable_index);
-            let mut blown_poly = Multilinear::additive_identity(variable_index);
+            let quotient;
+            let blown_poly;
 
             if variable_index != evaluation_points.len() - 1 {
                 quotient = get_poly_quotient(&poly);
@@ -85,7 +94,7 @@ impl<P: Pairing> MultilinearKZGInterface<P> for MultilinearKZG<P> {
         commit: &P::G1,
         verifier_points: &[P::ScalarField],
         proof: &MultilinearKZGProof<P>,
-        powers_of_tau_in_g2: Vec<P::G2>,
+        powers_of_tau_in_g2: &Vec<P::G2>,
     ) -> bool {
         let g1 = P::G1::generator();
         let g2 = P::G2::generator();
@@ -99,8 +108,8 @@ impl<P: Pairing> MultilinearKZGInterface<P> for MultilinearKZG<P> {
             TrustedSetup::<P>::generate_powers_of_tau_in_g2(verifier_points);
         let rhs = sum_pairing_results::<P>(
             powers_of_tau_in_g2,
-            verifier_point_powers_of_tau_in_g2,
-            proof.proofs.clone(),
+            &verifier_point_powers_of_tau_in_g2,
+            &proof.proofs,
         );
 
         lhs == rhs
@@ -109,7 +118,7 @@ impl<P: Pairing> MultilinearKZGInterface<P> for MultilinearKZG<P> {
 
 #[cfg(test)]
 mod tests {
-    use ark_bls12_381::{Bls12_381, Fr};
+    use ark_test_curves::bls12_381::{Bls12_381, Fr};
     use polynomial::Multilinear;
 
     use super::MultilinearKZG;
@@ -141,7 +150,7 @@ mod tests {
         let proof: MultilinearKZGProof<Bls12_381> =
             MultilinearKZG::open(&poly, &verifier_points, &tau.powers_of_tau_in_g1);
         let verify_status =
-            MultilinearKZG::verify(&commit, &verifier_points, &proof, tau.powers_of_tau_in_g2);
+            MultilinearKZG::verify(&commit, &verifier_points, &proof, &tau.powers_of_tau_in_g2);
 
         assert_eq!(verify_status, true)
     }
@@ -180,12 +189,12 @@ mod tests {
         let proof: MultilinearKZGProof<Bls12_381> =
             MultilinearKZG::open(&poly, &verifier_points, &tau.powers_of_tau_in_g1);
         let verify_status =
-            MultilinearKZG::verify(&commit, &verifier_points, &proof, tau.powers_of_tau_in_g2);
+            MultilinearKZG::verify(&commit, &verifier_points, &proof, &tau.powers_of_tau_in_g2);
         let tampered_tau_verify_status = MultilinearKZG::verify(
             &commit,
             &verifier_points,
             &proof,
-            tampered_tau.powers_of_tau_in_g2,
+            &tampered_tau.powers_of_tau_in_g2,
         );
 
         assert_eq!(verify_status, true);

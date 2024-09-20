@@ -40,7 +40,7 @@ pub fn reconstruct_secret<F: PrimeField>(shares: &[(F, F)], point: F) -> F {
 #[cfg(test)]
 mod tests {
     use crate::shamir_secret::{create_shares, reconstruct_secret};
-    use ark_bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr;
 
     #[test]
     fn test_create_shares_and_reconstruct_secret() {

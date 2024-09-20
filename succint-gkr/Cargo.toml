@@ -1,14 +1,14 @@
 [package]
-name = "gkr"
+name = "succint-gkr"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 polynomial = { path = "../polynomial" }
 circuit = { path = "../circuit" }
 sumcheck = { path = "../sumcheck" }
+multilinear-kzg = { path = "../multilinear-kzg" }
 fiat_shamir = { path = "../fiat-shamir-transcript" }
 ark-ff = "0.4.2"
 ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
+ark-ec = "0.4.2"

@@ -9,6 +9,13 @@ pub enum SchnorrError {
     InvalidSignature(String),
 }
 
+#[derive(Debug)]
+pub enum RSAError {
+    BadArgument(String),
+    OperationFailure(String),
+    ConversionFailure(String),
+}
+
 pub trait SchnorrSigTrait {
     fn generate_keypair() -> Result<(SchnorrPrivateKey, SchnorrPublicKey), SchnorrError>;
 

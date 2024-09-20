@@ -20,6 +20,8 @@ ZK-CRYPTOGRAPHY is a collection of cryptographic implementations focused on zero
 
 [Signature Schemes](/signature-schemes) - schnorr implementation
 
+[Succint GKR](/succint-gkr) - Succint GKR (SNARK) implementation
+
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.

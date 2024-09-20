@@ -61,25 +61,27 @@ pub fn composed_poly_to_bytes<F: PrimeField>(poly: &[ComposedMultilinear<F>]) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
+    use ark_test_curves::bls12_381::Fr;
     use polynomial::ComposedMultilinear;
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
 
     #[test]
     fn test_convert_field_to_byte() {
-        let one: Vec<u8> = convert_field_to_byte(&Fq::from(1));
-        let hundred: Vec<u8> = convert_field_to_byte(&Fq::from(100));
-        let ninety: Vec<u8> = convert_field_to_byte(&Fq::from(90));
+        let one: Vec<u8> = convert_field_to_byte(&Fr::from(1));
+        let hundred: Vec<u8> = convert_field_to_byte(&Fr::from(100));
+        let ninety: Vec<u8> = convert_field_to_byte(&Fr::from(90));
 
-        let expected_one = vec![0, 0, 0, 0, 0, 0, 0, 1];
-        let expected_hundred = vec![0, 0, 0, 0, 0, 0, 0, 15];
-        let incorrect_ninety = vec![0, 0, 0, 0, 0, 0, 0, 10];
+        let expected_one = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1,
+        ];
+        let expected_hundred = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 100,
+        ];
+        let incorrect_ninety = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 10,
+        ];
 
         assert_eq!(one, expected_one);
         assert_eq!(hundred, expected_hundred);
@@ -89,30 +91,30 @@ mod tests {
     #[test]
     fn test_skip_first_and_sum_all() {
         let poly1 = Multilinear::new(vec![
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(4),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(4),
         ]);
         let poly2 = Multilinear::new(vec![
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(2),
-            Fq::from(7),
-            Fq::from(3),
-            Fq::from(3),
-            Fq::from(6),
-            Fq::from(11),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(2),
+            Fr::from(7),
+            Fr::from(3),
+            Fr::from(3),
+            Fr::from(6),
+            Fr::from(11),
         ]);
         let evaluation1 = skip_first_and_sum_all(poly1);
         let evaluation2 = skip_first_and_sum_all(poly2);
 
-        let expected_polynomial1 = Multilinear::new(vec![Fq::from(2), Fq::from(10)]);
-        let expected_polynomial2 = Multilinear::new(vec![Fq::from(9), Fq::from(6)]);
+        let expected_polynomial1 = Multilinear::new(vec![Fr::from(2), Fr::from(10)]);
+        let expected_polynomial2 = Multilinear::new(vec![Fr::from(9), Fr::from(23)]);
 
         assert_eq!(evaluation1, expected_polynomial1);
         assert_eq!(evaluation2, expected_polynomial2);
@@ -120,15 +122,15 @@ mod tests {
 
     #[test]
     fn test_convert_round_poly_to_uni_poly_format() {
-        let point = vec![Fq::from(1), Fq::from(1), Fq::from(1), Fq::from(1)];
+        let point = vec![Fr::from(1), Fr::from(1), Fr::from(1), Fr::from(1)];
         let uni_poly_points = convert_round_poly_to_uni_poly_format(&point);
         assert_eq!(
             uni_poly_points,
             [
-                (Fq::from(0), Fq::from(1)),
-                (Fq::from(1), Fq::from(1)),
-                (Fq::from(2), Fq::from(1)),
-                (Fq::from(3), Fq::from(1))
+                (Fr::from(0), Fr::from(1)),
+                (Fr::from(1), Fr::from(1)),
+                (Fr::from(2), Fr::from(1)),
+                (Fr::from(3), Fr::from(1))
             ]
         )
     }
@@ -136,21 +138,21 @@ mod tests {
     #[test]
     fn test_sum_over_the_boolean_hypercube() {
         let val = vec![
-            Fq::from(1),
-            Fq::from(2),
-            Fq::from(3),
-            Fq::from(4),
-            Fq::from(5),
-            Fq::from(6),
-            Fq::from(7),
-            Fq::from(8),
+            Fr::from(1),
+            Fr::from(2),
+            Fr::from(3),
+            Fr::from(4),
+            Fr::from(5),
+            Fr::from(6),
+            Fr::from(7),
+            Fr::from(8),
         ];
 
         let poly = ComposedMultilinear::new([Multilinear::new(val)].to_vec());
 
         let res = sum_over_boolean_hypercube(&[poly]);
         assert!(
-            res == Fq::from(36),
+            res == Fr::from(36),
             "Incorrect sum over the boolean hypercube"
         );
     }

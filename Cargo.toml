@@ -5,6 +5,6 @@ members = [
     "gkr", "elliptic-curve",
     "fiat-shamir-transcript", "field",
     "polynomial",
-    "shamir-secret-sharing",
-    "sumcheck", "multilinear-kzg", "signature-schemes",
+    "shamir-secret-sharing", "circuit",
+    "sumcheck", "multilinear-kzg", "signature-schemes", "succint-gkr",
 ]

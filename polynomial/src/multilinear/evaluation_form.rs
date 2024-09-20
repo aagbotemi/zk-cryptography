@@ -95,18 +95,16 @@ impl<F: PrimeField> Multilinear<F> {
         Self::new(res)
     }
 
-    pub fn add_to_back(&self) -> Self {
-        let len = self.evaluations.len();
-        let mut res = Vec::with_capacity(len * 2);
+    pub fn add_to_back(&self, variable_length: &usize) -> Self {
+        let eval = self.evaluations.clone();
+        let input_len = eval.len();
+        let output_len = input_len * 2usize.pow(*variable_length as u32);
+        let repeat_count = output_len / input_len;
 
-        let mid_point: usize = len / 2;
-        let first_half: Vec<F> = self.evaluations[..mid_point].to_vec();
-        let second_half: Vec<F> = self.evaluations[mid_point..].to_vec();
-
-        res.extend_from_slice(&first_half);
-        res.extend_from_slice(&first_half);
-        res.extend_from_slice(&second_half);
-        res.extend_from_slice(&second_half);
+        let res = eval
+            .into_iter()
+            .flat_map(|num| std::iter::repeat(num).take(repeat_count))
+            .collect();
 
         Self::new(res)
     }
@@ -491,7 +489,7 @@ mod tests {
 
         let add_to_front = poly.add_to_front(&0);
         let add_to_front2 = poly2.add_to_front(&1);
-        let add_to_back = poly.add_to_back();
+        let add_to_back = poly.add_to_back(&1);
 
         assert_eq!(add_to_front, expected_add_to_front_poly);
         assert_eq!(add_to_front2, expected_add_to_front_poly2);

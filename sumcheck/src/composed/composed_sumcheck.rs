@@ -98,48 +98,41 @@ impl<F: PrimeField> ComposedSumcheck<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::MontConfig;
-    use ark_ff::{Fp64, MontBackend};
+    use ark_test_curves::bls12_381::Fr;
     use polynomial::Multilinear;
-
-    #[derive(MontConfig)]
-    #[modulus = "17"]
-    #[generator = "3"]
-    struct FqConfig;
-    type Fq = Fp64<MontBackend<FqConfig, 1>>;
 
     #[test]
     fn test_sum_calculation() {
-        let poly1 = Multilinear::new(vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(3)]);
-        let poly2 = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
+        let poly1 = Multilinear::new(vec![Fr::from(0), Fr::from(1), Fr::from(2), Fr::from(3)]);
+        let poly2 = Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(0), Fr::from(1)]);
         let composedpoly1 = ComposedMultilinear::new(vec![poly1, poly2]);
         let sum = ComposedSumcheck::calculate_poly_sum(&composedpoly1);
-        assert_eq!(sum, Fq::from(3));
+        assert_eq!(sum, Fr::from(3));
 
-        let poly1 = Multilinear::new(vec![Fq::from(3), Fq::from(3), Fq::from(5), Fq::from(5)]);
-        let poly2 = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
+        let poly1 = Multilinear::new(vec![Fr::from(3), Fr::from(3), Fr::from(5), Fr::from(5)]);
+        let poly2 = Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(0), Fr::from(1)]);
         let composedpoly2 = ComposedMultilinear::new(vec![poly1, poly2]);
         let sum2 = ComposedSumcheck::calculate_poly_sum(&composedpoly2);
-        assert_eq!(sum2, Fq::from(5));
+        assert_eq!(sum2, Fr::from(5));
 
-        let poly1 = Multilinear::new(vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(3)]);
+        let poly1 = Multilinear::new(vec![Fr::from(0), Fr::from(1), Fr::from(2), Fr::from(3)]);
         let composedpoly3 = ComposedMultilinear::new(vec![poly1]);
         let sum3 = ComposedSumcheck::calculate_poly_sum(&composedpoly3);
-        assert_eq!(sum3, Fq::from(6));
+        assert_eq!(sum3, Fr::from(6));
 
         let poly1 = Multilinear::new(vec![
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(2),
-            Fq::from(4),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(2),
+            Fr::from(4),
         ]);
         let composedpoly4 = ComposedMultilinear::new(vec![poly1]);
         let sum4 = ComposedSumcheck::calculate_poly_sum(&composedpoly4);
-        assert_eq!(sum4, Fq::from(12));
+        assert_eq!(sum4, Fr::from(12));
     }
 
     #[test]
@@ -151,8 +144,8 @@ mod tests {
         // 01 - 3  | 01 - 0
         // 10 - 5  | 10 - 0
         // 11 - 5  | 11 - 1
-        let poly1 = Multilinear::new(vec![Fq::from(3), Fq::from(3), Fq::from(5), Fq::from(5)]);
-        let poly2 = Multilinear::new(vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(1)]);
+        let poly1 = Multilinear::new(vec![Fr::from(3), Fr::from(3), Fr::from(5), Fr::from(5)]);
+        let poly2 = Multilinear::new(vec![Fr::from(0), Fr::from(0), Fr::from(0), Fr::from(1)]);
         let composedpoly = ComposedMultilinear::new(vec![poly1, poly2]);
         let sumcheck = ComposedSumcheck::new(composedpoly);
         let (proof, _challenges) = &sumcheck.prove();
@@ -164,14 +157,14 @@ mod tests {
     #[test]
     fn test_sum_check_proof1() {
         let mle = Multilinear::new(vec![
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(2),
-            Fq::from(7),
-            Fq::from(3),
-            Fq::from(3),
-            Fq::from(6),
-            Fq::from(11),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(2),
+            Fr::from(7),
+            Fr::from(3),
+            Fr::from(3),
+            Fr::from(6),
+            Fr::from(11),
         ]);
         let composedpoly = ComposedMultilinear::new(vec![mle]);
         let sumcheck = ComposedSumcheck::new(composedpoly);
@@ -184,22 +177,22 @@ mod tests {
     #[test]
     fn test_sum_check_proof_2() {
         let mle = Multilinear::new(vec![
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(1),
-            Fq::from(1),
-            Fq::from(1),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(1),
+            Fr::from(1),
+            Fr::from(1),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
+            Fr::from(0),
         ]);
         let composedpoly = ComposedMultilinear::new(vec![mle]);
         let sumcheck = ComposedSumcheck::new(composedpoly);
@@ -213,22 +206,22 @@ mod tests {
     #[test]
     fn test_sum_check_proof_3() {
         let mle = Multilinear::new(vec![
-            Fq::from(1),
-            Fq::from(3),
-            Fq::from(5),
-            Fq::from(7),
-            Fq::from(2),
-            Fq::from(4),
-            Fq::from(6),
-            Fq::from(8),
-            Fq::from(3),
-            Fq::from(5),
-            Fq::from(7),
-            Fq::from(9),
-            Fq::from(4),
-            Fq::from(6),
-            Fq::from(8),
-            Fq::from(10),
+            Fr::from(1),
+            Fr::from(3),
+            Fr::from(5),
+            Fr::from(7),
+            Fr::from(2),
+            Fr::from(4),
+            Fr::from(6),
+            Fr::from(8),
+            Fr::from(3),
+            Fr::from(5),
+            Fr::from(7),
+            Fr::from(9),
+            Fr::from(4),
+            Fr::from(6),
+            Fr::from(8),
+            Fr::from(10),
         ]);
         let composedpoly = ComposedMultilinear::new(vec![mle]);
         let sumcheck = ComposedSumcheck::new(composedpoly);

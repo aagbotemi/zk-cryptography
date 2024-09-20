@@ -18,7 +18,7 @@ pub trait MultilinearKZGInterface<P: Pairing> {
         commit: &P::G1,
         verifier_points: &[P::ScalarField],
         proof: &MultilinearKZGProof<P>,
-        powers_of_tau_in_g2: Vec<P::G2>,
+        powers_of_tau_in_g2: &Vec<P::G2>,
     ) -> bool;
 }
 

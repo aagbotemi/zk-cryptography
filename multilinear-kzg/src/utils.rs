@@ -40,9 +40,9 @@ pub fn generate_array_of_points<F: PrimeField>(bh_cube: &[Vec<F>], eval_points: 
 }
 
 pub fn sum_pairing_results<P: Pairing>(
-    v1: Vec<P::G2>,
-    v2: Vec<P::G2>,
-    v3: Vec<P::G1>,
+    v1: &Vec<P::G2>,
+    v2: &Vec<P::G2>,
+    v3: &Vec<P::G1>,
 ) -> PairingOutput<P> {
     let mut sum = PairingOutput::zero();
 
@@ -59,7 +59,7 @@ pub fn sum_pairing_results<P: Pairing>(
 
 #[cfg(test)]
 mod tests {
-    use ark_bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr;
     use polynomial::{utils::boolean_hypercube, Multilinear};
 
     use crate::utils::generate_array_of_points;
