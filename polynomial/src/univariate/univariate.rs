@@ -29,6 +29,10 @@ impl<F: PrimeField> UnivariatePolynomial<F> {
         }
         bytes
     }
+
+    pub fn from_coefficients(&self) -> Vec<F> {
+        self.monomial.iter().map(|mn| mn.coeff).collect()
+    }
 }
 
 impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
