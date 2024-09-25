@@ -128,11 +128,16 @@ impl<P: Pairing> SuccintGKRProtocol<P> {
             alpha = transcript.evaluate_challenge_into_field::<P::ScalarField>();
             beta = transcript.evaluate_challenge_into_field::<P::ScalarField>();
 
+            dbg!("BEFORE PROVER CONDITION");
+
             if layer_index == circuit_evaluation.len() - 1 {
+                dbg!("BEGINNING OF PROVER LAST ROUND CONDITION");
                 let exponent_from_powers_of_tau = exponent(tau.powers_of_tau_in_g1.len());
                 let blow_up_var_length = exponent_from_powers_of_tau - w_i_mle.n_vars;
+                dbg!("BEGINNING OF BLOWING UP POLYNOMIAL IN THE LAST ROUND CONDITION");
                 let poly: Multilinear<<P as Pairing>::ScalarField> =
                     w_i_mle.add_to_back(&blow_up_var_length);
+                dbg!("POLYNOMIAL BLOWN-UP IN THE LAST ROUND CONDITION");
 
                 let mut b_clone = b.to_vec();
                 let mut c_clone = c.to_vec();
@@ -144,15 +149,21 @@ impl<P: Pairing> SuccintGKRProtocol<P> {
 
                 b_clone.extend(padded_zeros_for_b_vec);
                 c_clone.extend(padded_zeros_for_c_vec);
+                dbg!("B-CLONE AND C-CLONE IN THE LAST ROUND CONDITION");
 
                 commitment = MultilinearKZG::<P>::commitment(&poly, &tau.powers_of_tau_in_g1);
+                dbg!("COMMITMENT IN THE LAST ROUND CONDITION");
                 proof_wb_opening =
                     MultilinearKZG::<P>::open(&poly, &b_clone, &tau.powers_of_tau_in_g1);
+                dbg!("PROOF WB OPENING IN THE LAST ROUND CONDITION");
                 proof_wc_opening =
                     MultilinearKZG::<P>::open(&poly, &c_clone, &tau.powers_of_tau_in_g1);
+                dbg!("PROOF WC OPENING IN THE LAST ROUND CONDITION");
 
                 claimed_sum = alpha * eval_wb + beta * eval_wc;
+                dbg!("CLAIMED SUM IN THE LAST ROUND CONDITION");
             } else {
+                dbg!("BEGINNING OF PROVER IN OTHER ROUND CONDITION");
                 claimed_sum = alpha * eval_wb + beta * eval_wc;
             }
         }

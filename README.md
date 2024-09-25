@@ -18,7 +18,7 @@ ZK-CRYPTOGRAPHY is a collection of cryptographic implementations focused on zero
 
 [Multilinear KZG](/multilinear-kzg) - multilinear kzg implementation
 
-[Signature Schemes](/signature-schemes) - schnorr implementation
+[Signature Schemes](/signature-schemes) - schnorr, rsa implementation
 
 [Succint GKR](/succint-gkr) - Succint GKR (SNARK) implementation
 

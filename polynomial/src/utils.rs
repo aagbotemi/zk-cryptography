@@ -1,5 +1,10 @@
+use std::f64::consts::PI;
+
 use crate::multilinear::coefficient_form::MultiLinearMonomial;
-use ark_ff::PrimeField;
+use ark_ff::{BigInteger, PrimeField, Zero};
+use num_bigint::BigUint;
+use num_complex::Complex;
+use num_traits::ToPrimitive;
 
 pub fn pick_pairs_with_index<F: PrimeField>(
     terms: &Vec<MultiLinearMonomial<F>>,
@@ -107,6 +112,97 @@ pub fn boolean_hypercube<F: PrimeField>(n: usize) -> Vec<Vec<F>> {
     }
 
     hypercube
+}
+
+pub fn fft<F: PrimeField>(coefficients: &Vec<F>) -> Vec<Complex<f64>> {
+    let length_of_coefficients = coefficients.len();
+
+    if length_of_coefficients == 1 {
+        return vec![Complex::new(
+            convert_prime_field_to_f64(coefficients[0]),
+            0.0,
+        )];
+    }
+
+    // nth root of unity => Z^n = 1
+    // 2π/n => e^iθ = cos(θ) + i.sin(θ)
+    // ω = e^(2πi/n)
+    let ω = nth_root_of_unity(length_of_coefficients, false);
+
+    // Pe = [P0,P2,...,Pn-2]
+    let poly_even = get_even_indexed_coefficients(&coefficients);
+    // Po = [P1,P3,...,Pn-1]
+    let poly_odd = get_odd_indexed_coefficients(&coefficients);
+
+    // y_e = fft(Pe)
+    let y_e = fft(&poly_even);
+    // y_o = fft(Po)
+    let y_o = fft(&poly_odd);
+
+    // y = [0] * n
+    let mut y = vec![Complex::zero(); length_of_coefficients];
+    let half_len = length_of_coefficients / 2;
+
+    for j in 0..half_len {
+        let ω_pow_j = ω.powf(j as f64);
+        y[j] = y_e[j] + (ω_pow_j * y_o[j]);
+        y[j + half_len] = y_e[j] - (ω_pow_j * y_o[j]);
+    }
+
+    y
+}
+
+pub fn ifft(coefficients: &Vec<Complex<f64>>) -> Vec<Complex<f64>> {
+    let length_of_coefficients = coefficients.len();
+    if length_of_coefficients == 1 {
+        return vec![coefficients[0]];
+    }
+
+    let ω = nth_root_of_unity(length_of_coefficients, true);
+
+    let poly_even = get_even_indexed_coefficients(&coefficients);
+    let poly_odd = get_odd_indexed_coefficients(&coefficients);
+
+    let y_e = ifft(&poly_even);
+    let y_o = ifft(&poly_odd);
+
+    let mut y = vec![Complex::zero(); length_of_coefficients];
+    let half_len = length_of_coefficients / 2;
+
+    for j in 0..half_len {
+        let ω_pow_j = ω.powf(j as f64);
+        y[j] = y_e[j] + (ω_pow_j * y_o[j]);
+        y[j + half_len] = y_e[j] - (ω_pow_j * y_o[j]);
+    }
+
+    y
+}
+
+fn nth_root_of_unity(n: usize, inverse: bool) -> Complex<f64> {
+    let degree = if inverse {
+        // -2π/n
+        (-2.0 * PI) / (n as f64)
+    } else {
+        // 2π/n
+        (2.0 * PI) / (n as f64)
+    };
+
+    // e^iθ = cos(θ) + i.sin(θ)
+    Complex::new(degree.cos(), degree.sin())
+}
+
+pub fn get_even_indexed_coefficients<T: Clone>(input: &[T]) -> Vec<T> {
+    input[..].iter().step_by(2).cloned().collect()
+}
+
+pub fn get_odd_indexed_coefficients<T: Clone>(input: &[T]) -> Vec<T> {
+    input[1..].iter().step_by(2).cloned().collect()
+}
+
+pub fn convert_prime_field_to_f64<F: PrimeField>(input: F) -> f64 {
+    let bigint = input.into_bigint();
+    let biguint = BigUint::from_bytes_le(&bigint.to_bytes_le());
+    biguint.to_f64().unwrap()
 }
 
 #[cfg(test)]

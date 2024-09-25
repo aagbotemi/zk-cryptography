@@ -1,6 +1,14 @@
-use crate::{interface::UnivariatePolynomialTrait, utils::lagrange_basis};
-use ark_ff::{BigInteger, PrimeField};
+use crate::{
+    interface::UnivariatePolynomialTrait,
+    utils::{
+        convert_prime_field_to_f64, fft, get_even_indexed_coefficients,
+        get_odd_indexed_coefficients, ifft, lagrange_basis,
+    },
+};
+use ark_ff::{BigInteger, PrimeField, Zero};
+use num_complex::Complex;
 use std::{
+    f64::consts::PI,
     fmt::{Display, Formatter, Result},
     ops::{Add, Mul},
 };
@@ -32,6 +40,37 @@ impl<F: PrimeField> UnivariatePolynomial<F> {
 
     pub fn from_coefficients(&self) -> Vec<F> {
         self.monomial.iter().map(|mn| mn.coeff).collect()
+    }
+
+    pub fn multiply_polynomials(poly1: &Vec<F>, poly2: &Vec<F>) -> Vec<F> {
+        let mut a = poly1.clone();
+        let mut b = poly2.clone();
+
+        if !a.len().is_power_of_two() {
+            a.resize(a.len() + 1, F::zero());
+        }
+        if !b.len().is_power_of_two() {
+            b.resize(b.len() + 1, F::zero());
+        }
+
+        let fft_a = fft(&a);
+        let fft_b = fft(&b);
+
+        let mut fft_result = vec![Complex::zero(); fft_a.len()];
+        for i in 0..fft_a.len() {
+            fft_result[i] = fft_a[i] * fft_b[i];
+        }
+
+        let ifft_result = ifft(&fft_result);
+
+        let result: Vec<_> = ifft_result
+            .iter()
+            .map(|i| F::from(i.re.round() as u64))
+            .collect();
+
+        dbg!(&result);
+
+        result
     }
 }
 
@@ -219,6 +258,8 @@ impl<F: PrimeField> Display for UnivariatePolynomial<F> {
 }
 
 mod tests {
+    use std::result;
+
     use super::*;
     use crate::Fq;
 
