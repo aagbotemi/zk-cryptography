@@ -1,14 +1,10 @@
 use crate::{
     interface::UnivariatePolynomialTrait,
-    utils::{
-        convert_prime_field_to_f64, fft, get_even_indexed_coefficients,
-        get_odd_indexed_coefficients, ifft, lagrange_basis,
-    },
+    utils::{fft, ifft, lagrange_basis},
 };
 use ark_ff::{BigInteger, PrimeField, Zero};
 use num_complex::Complex;
 use std::{
-    f64::consts::PI,
     fmt::{Display, Formatter, Result},
     ops::{Add, Mul},
 };
@@ -490,5 +486,42 @@ mod tests {
         let degree = polynomial.degree();
 
         assert_eq!(degree, Fq::from(4_u8));
+    }
+
+    #[test]
+    #[ignore = "reason"]
+    fn test_fft_multiplication() {
+        // 1 * (1 + 2x + 3x^2 ) + x * (1 + 2x + 3x^2 ) + x^2 * (1 + 2x + 3x^2 )
+        // 1 + 2x + 3x^2 + x + 2x^2 + 3x^3 + x^2 + 2x^3 + 3x^4
+        // 3x^3 + 2x^3 + 3x^4
+        // 1 + 3x + 6x^2 + 5x^3 + 3x^4
+        let poly_a = vec![Fq::from(1), Fq::from(2), Fq::from(3)]; // Coefficients of A(x)
+        let poly_b = vec![Fq::from(1), Fq::from(1), Fq::from(1)]; // Coefficients of B(x)
+
+        let result = UnivariatePolynomial::multiply_polynomials(&poly_a, &poly_b);
+
+        let poly_1 = UnivariatePolynomial::new(vec![
+            Fq::from(1_u8),
+            Fq::from(0_u8),
+            Fq::from(2_u8),
+            Fq::from(1_u8),
+            Fq::from(3_u8),
+            Fq::from(2_u8),
+        ]);
+
+        let poly_2 = UnivariatePolynomial::new(vec![
+            Fq::from(1_u8),
+            Fq::from(0_u8),
+            Fq::from(1_u8),
+            Fq::from(1_u8),
+            Fq::from(1_u8),
+            Fq::from(2_u8),
+        ]);
+
+        let normal_mult = poly_1 * poly_2;
+
+        let result_2 = normal_mult.from_coefficients();
+
+        assert_eq!(result, result_2)
     }
 }

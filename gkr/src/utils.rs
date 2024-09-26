@@ -96,3 +96,16 @@ pub fn generate_layer_one_verify_sumcheck<F: PrimeField>(
 
     (true, new_claim)
 }
+
+pub fn exponent(value: usize) -> usize {
+    let mut num: usize = value;
+    let mut exponent: usize = 0;
+
+    while num > 1 {
+        assert_eq!(num % 2, 0, "Value is not a power of 2");
+        num /= 2;
+        exponent += 1;
+    }
+
+    exponent
+}

@@ -8,3 +8,4 @@ ark-ec = "0.4.2"
 ark-ff = "0.4.2"
 polynomial = { path = "../polynomial" }
 ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
+rayon = "1.10.0"

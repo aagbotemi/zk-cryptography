@@ -10,8 +10,8 @@ pub fn get_poly_remainder<F: PrimeField>(
 }
 
 pub fn get_poly_quotient<F: PrimeField>(poly: &Multilinear<F>) -> Multilinear<F> {
-    let f_1 = poly.partial_evaluation(&F::from(1_u8), &0);
-    let f_0 = poly.partial_evaluation(&F::from(0_u8), &0);
+    let f_1 = poly.partial_evaluation(&F::ONE, &0);
+    let f_0 = poly.partial_evaluation(&F::ZERO, &0);
 
     f_1 - f_0
 }

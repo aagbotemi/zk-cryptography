@@ -1,10 +1,9 @@
-use std::f64::consts::PI;
-
 use crate::multilinear::coefficient_form::MultiLinearMonomial;
 use ark_ff::{BigInteger, PrimeField, Zero};
 use num_bigint::BigUint;
 use num_complex::Complex;
 use num_traits::ToPrimitive;
+use std::f64::consts::PI;
 
 pub fn pick_pairs_with_index<F: PrimeField>(
     terms: &Vec<MultiLinearMonomial<F>>,
@@ -203,6 +202,25 @@ pub fn convert_prime_field_to_f64<F: PrimeField>(input: F) -> f64 {
     let bigint = input.into_bigint();
     let biguint = BigUint::from_bytes_le(&bigint.to_bytes_le());
     biguint.to_f64().unwrap()
+}
+
+pub fn compute_number_of_variables(n: u128) -> (u128, u128) {
+    if n == 0 {
+        return (0, 0);
+    }
+    if n == 1 {
+        return (1, 2);
+    }
+
+    let mut log_base_2 = n.ilog2();
+    let mut n_power_2 = 1 << log_base_2;
+
+    if n != n_power_2 {
+        log_base_2 += 1;
+        n_power_2 = 1 << log_base_2;
+    }
+
+    (log_base_2 as u128, n_power_2)
 }
 
 #[cfg(test)]

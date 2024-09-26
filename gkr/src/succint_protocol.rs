@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use ark_ec::pairing::Pairing;
-use ark_ff::{One, Zero};
+use ark_ff::{One, PrimeField, Zero};
 use circuit::circuit::Circuit;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
 use multilinear_kzg::{
@@ -19,45 +19,45 @@ use crate::utils::{
 };
 
 #[derive(Debug)]
-pub struct SuccintGKRProof<P: Pairing> {
-    sumcheck_proofs: Vec<ComposedSumcheckProof<P::ScalarField>>,
-    wb_s: Vec<P::ScalarField>,
-    wc_s: Vec<P::ScalarField>,
-    w_0_mle: Multilinear<P::ScalarField>,
-    proof_wb_opening: MultilinearKZGProof<P>,
-    proof_wc_opening: MultilinearKZGProof<P>,
+pub struct SuccintGKRProof<F: PrimeField, P: Pairing> {
+    sumcheck_proofs: Vec<ComposedSumcheckProof<F>>,
+    wb_s: Vec<F>,
+    wc_s: Vec<F>,
+    w_0_mle: Multilinear<F>,
+    proof_wb_opening: MultilinearKZGProof<F, P>,
+    proof_wc_opening: MultilinearKZGProof<F, P>,
 }
 
-pub struct SuccintGKRProtocol<P: Pairing> {
-    _marker: PhantomData<P>,
+pub struct SuccintGKRProtocol<F: PrimeField, P: Pairing> {
+    _marker: PhantomData<(F, P)>,
 }
 
-impl<P: Pairing> SuccintGKRProtocol<P> {
+impl<F: PrimeField, P: Pairing> SuccintGKRProtocol<F, P> {
     /// Prove correct circuit evaluation using the GKR protocol
     pub fn prove(
         circuit: &Circuit,
-        input: &Vec<P::ScalarField>,
+        input: &Vec<F>,
         tau: &TrustedSetup<P>,
-    ) -> (P::G1, SuccintGKRProof<P>) {
+    ) -> (P::G1, SuccintGKRProof<F, P>) {
         let mut transcript = FiatShamirTranscript::new();
-        let mut sumcheck_proofs: Vec<ComposedSumcheckProof<P::ScalarField>> = Vec::new();
-        let mut wb_s: Vec<P::ScalarField> = Vec::new();
-        let mut wc_s: Vec<P::ScalarField> = Vec::new();
+        let mut sumcheck_proofs: Vec<ComposedSumcheckProof<F>> = Vec::new();
+        let mut wb_s: Vec<F> = Vec::new();
+        let mut wc_s: Vec<F> = Vec::new();
 
         let circuit_evaluation = circuit.evaluation(input);
         let mut circuit_evaluation_layer_zero_pad = circuit_evaluation[0].clone();
-        circuit_evaluation_layer_zero_pad.push(P::ScalarField::zero());
+        circuit_evaluation_layer_zero_pad.push(F::zero());
 
-        let w_0_mle = w_mle::<P>(circuit_evaluation_layer_zero_pad.to_vec());
+        let w_0_mle = w_mle::<F>(circuit_evaluation_layer_zero_pad.to_vec());
         transcript.commit(&w_0_mle.to_bytes());
 
-        let n_r: Vec<P::ScalarField> = transcript.evaluate_n_challenge_into_field(&w_0_mle.n_vars);
-        let mut claimed_sum: P::ScalarField = w_0_mle.evaluation(&n_r);
+        let n_r = transcript.evaluate_n_challenge_into_field(&w_0_mle.n_vars);
+        let mut claimed_sum = w_0_mle.evaluation(&n_r);
 
-        let (add_mle_1, mult_mle_1) = circuit.add_mult_mle::<P::ScalarField>(0);
-        let w_1_mle = w_mle::<P>(circuit_evaluation[1].to_vec());
+        let (add_mle_1, mult_mle_1) = circuit.add_mult_mle::<F>(0);
+        let w_1_mle = w_mle::<F>(circuit_evaluation[1].to_vec());
 
-        let (claimed, alph, bta, rb, rc) = generate_layer_one_prove_sumcheck::<P>(
+        let (claimed, alph, bta, rb, rc) = generate_layer_one_prove_sumcheck(
             &add_mle_1,
             &mult_mle_1,
             &w_1_mle,
@@ -71,25 +71,25 @@ impl<P: Pairing> SuccintGKRProtocol<P> {
 
         claimed_sum = claimed;
 
-        let mut alpha: P::ScalarField = alph;
-        let mut beta: P::ScalarField = bta;
+        let mut alpha: F = alph;
+        let mut beta: F = bta;
 
-        let mut r_b: Vec<P::ScalarField> = rb;
-        let mut r_c: Vec<P::ScalarField> = rc;
+        let mut r_b: Vec<F> = rb;
+        let mut r_c: Vec<F> = rc;
 
         let mut commitment: P::G1 = Default::default();
-        let mut proof_wb_opening: MultilinearKZGProof<P> = Default::default();
-        let mut proof_wc_opening: MultilinearKZGProof<P> = Default::default();
+        let mut proof_wb_opening: MultilinearKZGProof<F, P> = Default::default();
+        let mut proof_wc_opening: MultilinearKZGProof<F, P> = Default::default();
 
         for layer_index in 2..circuit_evaluation.len() {
-            let (add_mle, mult_mle) = circuit.add_mult_mle::<P::ScalarField>(layer_index - 1);
+            let (add_mle, mult_mle) = circuit.add_mult_mle(layer_index - 1);
 
             let add_rb_bc = add_mle.partial_evaluations(&r_b, &vec![0; r_b.len()]);
             let mul_rb_bc = mult_mle.partial_evaluations(&r_b, &vec![0; r_b.len()]);
 
             let add_rc_bc = add_mle.partial_evaluations(&r_c, &vec![0; r_b.len()]);
             let mul_rc_bc = mult_mle.partial_evaluations(&r_c, &vec![0; r_b.len()]);
-            let w_i_mle = w_mle::<P>(circuit_evaluation[layer_index].to_vec());
+            let w_i_mle = w_mle::<F>(circuit_evaluation[layer_index].to_vec());
 
             let wb = w_i_mle.clone();
             let wc = w_i_mle.clone();
@@ -125,45 +125,31 @@ impl<P: Pairing> SuccintGKRProtocol<P> {
             r_b = b.to_vec();
             r_c = c.to_vec();
 
-            alpha = transcript.evaluate_challenge_into_field::<P::ScalarField>();
-            beta = transcript.evaluate_challenge_into_field::<P::ScalarField>();
-
-            dbg!("BEFORE PROVER CONDITION");
+            alpha = transcript.evaluate_challenge_into_field::<F>();
+            beta = transcript.evaluate_challenge_into_field::<F>();
 
             if layer_index == circuit_evaluation.len() - 1 {
-                dbg!("BEGINNING OF PROVER LAST ROUND CONDITION");
                 let exponent_from_powers_of_tau = exponent(tau.powers_of_tau_in_g1.len());
                 let blow_up_var_length = exponent_from_powers_of_tau - w_i_mle.n_vars;
-                dbg!("BEGINNING OF BLOWING UP POLYNOMIAL IN THE LAST ROUND CONDITION");
-                let poly: Multilinear<<P as Pairing>::ScalarField> =
-                    w_i_mle.add_to_back(&blow_up_var_length);
-                dbg!("POLYNOMIAL BLOWN-UP IN THE LAST ROUND CONDITION");
+
+                let poly: Multilinear<F> = w_i_mle.add_to_back(&blow_up_var_length);
 
                 let mut b_clone = b.to_vec();
                 let mut c_clone = c.to_vec();
 
-                let padded_zeros_for_b_vec =
-                    &vec![P::ScalarField::zero(); &poly.n_vars - b_clone.len()];
-                let padded_zeros_for_c_vec =
-                    &vec![P::ScalarField::zero(); &poly.n_vars - c_clone.len()];
+                let padded_zeros_for_b_vec = &vec![F::zero(); &poly.n_vars - b_clone.len()];
+                let padded_zeros_for_c_vec = &vec![F::zero(); &poly.n_vars - c_clone.len()];
 
                 b_clone.extend(padded_zeros_for_b_vec);
                 c_clone.extend(padded_zeros_for_c_vec);
-                dbg!("B-CLONE AND C-CLONE IN THE LAST ROUND CONDITION");
 
-                commitment = MultilinearKZG::<P>::commitment(&poly, &tau.powers_of_tau_in_g1);
-                dbg!("COMMITMENT IN THE LAST ROUND CONDITION");
-                proof_wb_opening =
-                    MultilinearKZG::<P>::open(&poly, &b_clone, &tau.powers_of_tau_in_g1);
-                dbg!("PROOF WB OPENING IN THE LAST ROUND CONDITION");
-                proof_wc_opening =
-                    MultilinearKZG::<P>::open(&poly, &c_clone, &tau.powers_of_tau_in_g1);
-                dbg!("PROOF WC OPENING IN THE LAST ROUND CONDITION");
+                commitment = MultilinearKZG::commitment(&poly, &tau);
+
+                proof_wb_opening = MultilinearKZG::open(&poly, &b_clone, &tau);
+                proof_wc_opening = MultilinearKZG::open(&poly, &c_clone, &tau);
 
                 claimed_sum = alpha * eval_wb + beta * eval_wc;
-                dbg!("CLAIMED SUM IN THE LAST ROUND CONDITION");
             } else {
-                dbg!("BEGINNING OF PROVER IN OTHER ROUND CONDITION");
                 claimed_sum = alpha * eval_wb + beta * eval_wc;
             }
         }
@@ -184,7 +170,7 @@ impl<P: Pairing> SuccintGKRProtocol<P> {
     pub fn verify(
         circuit: &Circuit,
         commitment: &P::G1,
-        proof: &SuccintGKRProof<P>,
+        proof: &SuccintGKRProof<F, P>,
         tau: &TrustedSetup<P>,
     ) -> bool {
         if proof.sumcheck_proofs.len() != proof.wb_s.len()
@@ -196,17 +182,16 @@ impl<P: Pairing> SuccintGKRProtocol<P> {
         let mut transcript = FiatShamirTranscript::new();
         transcript.commit(&proof.w_0_mle.to_bytes());
 
-        let n_r: Vec<P::ScalarField> =
-            transcript.evaluate_n_challenge_into_field::<P::ScalarField>(&proof.w_0_mle.n_vars);
+        let n_r = transcript.evaluate_n_challenge_into_field(&proof.w_0_mle.n_vars);
         let mut claimed_sum = proof.w_0_mle.evaluation(&n_r.clone().as_slice());
 
-        let mut r_b: Vec<P::ScalarField> = vec![];
-        let mut r_c: Vec<P::ScalarField> = vec![];
-        let mut alpha: P::ScalarField = P::ScalarField::one();
-        let mut beta: P::ScalarField = P::ScalarField::one();
+        let mut r_b: Vec<F> = vec![];
+        let mut r_c: Vec<F> = vec![];
+        let mut alpha: F = F::one();
+        let mut beta: F = F::one();
 
-        let (add_mle_1, mult_mle_1) = circuit.add_mult_mle::<P::ScalarField>(0);
-        let (status, r1_sum) = generate_layer_one_verify_sumcheck::<P>(
+        let (add_mle_1, mult_mle_1) = circuit.add_mult_mle(0);
+        let (status, r1_sum) = generate_layer_one_verify_sumcheck(
             &add_mle_1,
             &mult_mle_1,
             &proof.sumcheck_proofs[0],
@@ -229,8 +214,8 @@ impl<P: Pairing> SuccintGKRProtocol<P> {
 
             transcript.commit(&proof.sumcheck_proofs[i].to_bytes());
 
-            alpha = transcript.evaluate_challenge_into_field::<P::ScalarField>();
-            beta = transcript.evaluate_challenge_into_field::<P::ScalarField>();
+            alpha = transcript.evaluate_challenge_into_field();
+            beta = transcript.evaluate_challenge_into_field();
 
             let verify_subclaim =
                 MultiComposedSumcheckVerifier::verify_partial(&proof.sumcheck_proofs[i]).unwrap();
@@ -252,25 +237,17 @@ impl<P: Pairing> SuccintGKRProtocol<P> {
         let mut rc_clone = r_c.to_vec();
 
         let length_of_padded_zeros_for_b_vec =
-            &vec![P::ScalarField::zero(); &tau.powers_of_tau_in_g2.len() - rb_clone.len()];
+            &vec![F::zero(); &tau.powers_of_tau_in_g2.len() - rb_clone.len()];
         let length_of_padded_zeros_for_c_vec =
-            &vec![P::ScalarField::zero(); &tau.powers_of_tau_in_g2.len() - rc_clone.len()];
+            &vec![F::zero(); &tau.powers_of_tau_in_g2.len() - rc_clone.len()];
 
         rb_clone.extend(length_of_padded_zeros_for_b_vec);
         rc_clone.extend(length_of_padded_zeros_for_c_vec);
 
-        let verify_rb = MultilinearKZG::verify(
-            commitment,
-            &rb_clone,
-            &proof.proof_wb_opening,
-            &tau.powers_of_tau_in_g2,
-        );
-        let verify_rc = MultilinearKZG::verify(
-            commitment,
-            &rc_clone,
-            &proof.proof_wc_opening,
-            &tau.powers_of_tau_in_g2,
-        );
+        let verify_rb =
+            MultilinearKZG::verify(commitment, &rb_clone, &proof.proof_wb_opening, &tau);
+        let verify_rc =
+            MultilinearKZG::verify(commitment, &rc_clone, &proof.proof_wc_opening, &tau);
 
         let mut w_mle_rb_input = Default::default();
         let mut w_mle_rc_input = Default::default();
@@ -299,7 +276,7 @@ mod tests {
     };
     use multilinear_kzg::{interface::TrustedSetupInterface, trusted_setup::TrustedSetup};
 
-    use crate::succint_gkr::SuccintGKRProtocol;
+    use crate::succint_protocol::SuccintGKRProtocol;
 
     #[test]
     fn test_succint_gkr_protocol_1() {
@@ -353,11 +330,14 @@ mod tests {
         let evaluation = circuit.evaluation(&input);
 
         assert_eq!(evaluation[0][0], Fr::from(308u32));
+        let points = vec![Fr::from(54), Fr::from(90), Fr::from(76), Fr::from(160)];
 
-        let tau = TrustedSetup::<Bls12_381>::setup(&input);
+        let tau = TrustedSetup::<Bls12_381>::setup(&points);
 
-        let (commitment, proof) = SuccintGKRProtocol::<Bls12_381>::prove(&circuit, &input, &tau);
-        let verify = SuccintGKRProtocol::<Bls12_381>::verify(&circuit, &commitment, &proof, &tau);
+        let (commitment, proof) =
+            SuccintGKRProtocol::<Fr, Bls12_381>::prove(&circuit, &input, &tau);
+        let verify =
+            SuccintGKRProtocol::<Fr, Bls12_381>::verify(&circuit, &commitment, &proof, &tau);
 
         assert!(&verify);
     }
@@ -409,8 +389,9 @@ mod tests {
         let evaluation = circuit.evaluation(&input);
 
         assert_eq!(evaluation[0][0], Fr::from(224u32));
+        let points = vec![Fr::from(12), Fr::from(9), Fr::from(28), Fr::from(40)];
 
-        let tau = TrustedSetup::<Bls12_381>::setup(&input);
+        let tau = TrustedSetup::<Bls12_381>::setup(&points);
 
         let (commitment, proof) = SuccintGKRProtocol::prove(&circuit, &input, &tau);
 

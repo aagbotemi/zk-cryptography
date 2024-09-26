@@ -1,4 +1,7 @@
-use crate::{interface::MultilinearTrait, utils::pick_pairs_with_random_index};
+use crate::{
+    interface::MultilinearTrait,
+    utils::{compute_number_of_variables, pick_pairs_with_random_index},
+};
 use ark_ff::{BigInteger, PrimeField};
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
