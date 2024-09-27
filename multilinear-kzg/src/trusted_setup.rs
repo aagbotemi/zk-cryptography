@@ -2,10 +2,7 @@ use ark_ec::{pairing::Pairing, Group};
 use ark_ff::PrimeField;
 use std::fmt::{Debug, Formatter, Result};
 
-use crate::{
-    interface::TrustedSetupInterface,
-    utils::{check_for_zero_and_one, generate_array_of_points},
-};
+use crate::{interface::TrustedSetupInterface, utils::generate_array_of_points};
 use polynomial::utils::boolean_hypercube;
 
 pub struct TrustedSetup<P: Pairing> {

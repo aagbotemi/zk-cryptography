@@ -3,6 +3,7 @@ use ark_ff::{BigInteger, PrimeField, Zero};
 use num_bigint::BigUint;
 use num_complex::Complex;
 use num_traits::ToPrimitive;
+use rand::thread_rng;
 use std::f64::consts::PI;
 
 pub fn pick_pairs_with_index<F: PrimeField>(
@@ -221,6 +222,17 @@ pub fn compute_number_of_variables(n: u128) -> (u128, u128) {
     }
 
     (log_base_2 as u128, n_power_2)
+}
+
+pub fn generate_random<F: PrimeField>(n: usize) -> Vec<F> {
+    let mut result = Vec::with_capacity(n);
+    let mut rng = thread_rng();
+
+    for _ in 0..n {
+        result.push(F::rand(&mut rng));
+    }
+
+    result
 }
 
 #[cfg(test)]

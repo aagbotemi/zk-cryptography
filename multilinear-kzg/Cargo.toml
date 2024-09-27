@@ -8,4 +8,10 @@ ark-ec = "0.4.2"
 ark-ff = "0.4.2"
 polynomial = { path = "../polynomial" }
 ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
-rayon = "1.10.0"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "multilinear_kzg_benchmark"
+harness = false

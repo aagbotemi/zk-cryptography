@@ -3,7 +3,6 @@ use ark_ec::{CurveGroup, Group};
 use ark_ff::UniformRand;
 use rand::rngs::ThreadRng;
 use rand::thread_rng;
-use rayon::prelude::*;
 use std::ops::Mul;
 
 use crate::{
@@ -88,11 +87,10 @@ impl SchnorrSigTrait for SchnorrSig {
         assert_eq!(public_keys.len(), messages.len(), "Length Mismatch");
         assert_eq!(public_keys.len(), signatures.len(), "Length Mismatch");
 
-        // Perform batch verification
         let verification_results: Vec<Result<bool, SchnorrError>> = public_keys
-            .par_iter()
-            .zip(messages.par_iter())
-            .zip(signatures.par_iter())
+            .iter()
+            .zip(messages.iter())
+            .zip(signatures.iter())
             .map(|((pk, msg), sig)| SchnorrSig::verify(pk, msg, sig))
             .collect();
 

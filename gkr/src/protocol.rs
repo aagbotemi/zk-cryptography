@@ -18,13 +18,15 @@ pub struct GKRProtocol {}
 
 impl GKRProtocol {
     /// Prove correct circuit evaluation using the GKR protocol
-    pub fn prove<'a, F: PrimeField>(circuit: &'a Circuit, input: &'a Vec<F>) -> GKRProof<F> {
+    pub fn prove<'a, F: PrimeField>(
+        circuit: &'a Circuit,
+        circuit_evaluation: &'a Vec<Vec<F>>,
+    ) -> GKRProof<F> {
         let mut transcript = FiatShamirTranscript::new();
         let mut sumcheck_proofs: Vec<ComposedSumcheckProof<F>> = Vec::new();
         let mut wb_s: Vec<F> = Vec::new();
         let mut wc_s: Vec<F> = Vec::new();
 
-        let circuit_evaluation = circuit.evaluation(input);
         let mut circuit_evaluation_layer_zero_pad = circuit_evaluation[0].clone();
         circuit_evaluation_layer_zero_pad.push(F::zero());
 
@@ -218,7 +220,9 @@ mod tests {
             Fr::from(5u32),
         ];
 
-        let proof = GKRProtocol::prove(&circuit, &input);
+        let circuit_evaluation = circuit.evaluation(&input);
+
+        let proof = GKRProtocol::prove(&circuit, &circuit_evaluation);
         let verify = GKRProtocol::verify(&circuit, &input, &proof);
 
         assert_eq!(verify, true);
@@ -249,7 +253,7 @@ mod tests {
         ]);
 
         let circuit = Circuit::new(vec![layer_0, layer_1, layer_3, layer_4]);
-        let input = [
+        let input = vec![
             Fr::from(2u32),
             Fr::from(1u32),
             Fr::from(3u32),
@@ -272,7 +276,7 @@ mod tests {
 
         assert_eq!(evaluation[0][0], Fr::from(224u32));
 
-        let proof = GKRProtocol::prove(&circuit, &input.to_vec());
+        let proof = GKRProtocol::prove(&circuit, &evaluation);
 
         assert!(GKRProtocol::verify(&circuit, &input, &proof));
     }

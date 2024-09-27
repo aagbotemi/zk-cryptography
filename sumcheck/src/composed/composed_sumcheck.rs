@@ -13,8 +13,8 @@ pub struct ComposedSumcheck<F: PrimeField> {
 }
 
 pub struct ComposedSumcheckProof<F: PrimeField> {
-    poly: ComposedMultilinear<F>,
-    round_polys: Vec<Vec<F>>,
+    pub poly: ComposedMultilinear<F>,
+    pub round_polys: Vec<Vec<F>>,
 }
 
 impl<F: PrimeField> ComposedSumcheck<F> {

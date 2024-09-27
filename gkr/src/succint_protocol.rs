@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use ark_ec::pairing::Pairing;
-use ark_ff::{One, PrimeField, Zero};
+use ark_ff::PrimeField;
 use circuit::circuit::Circuit;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
 use multilinear_kzg::{
@@ -36,7 +36,7 @@ impl<F: PrimeField, P: Pairing> SuccintGKRProtocol<F, P> {
     /// Prove correct circuit evaluation using the GKR protocol
     pub fn prove(
         circuit: &Circuit,
-        input: &Vec<F>,
+        circuit_evaluation: &Vec<Vec<F>>,
         tau: &TrustedSetup<P>,
     ) -> (P::G1, SuccintGKRProof<F, P>) {
         let mut transcript = FiatShamirTranscript::new();
@@ -44,7 +44,6 @@ impl<F: PrimeField, P: Pairing> SuccintGKRProtocol<F, P> {
         let mut wb_s: Vec<F> = Vec::new();
         let mut wc_s: Vec<F> = Vec::new();
 
-        let circuit_evaluation = circuit.evaluation(input);
         let mut circuit_evaluation_layer_zero_pad = circuit_evaluation[0].clone();
         circuit_evaluation_layer_zero_pad.push(F::zero());
 
@@ -293,9 +292,11 @@ mod tests {
             Fr::from(5u32),
         ];
 
-        let tau = TrustedSetup::<Bls12_381>::setup(&input);
+        let circuit_evaluation = circuit.evaluation(&input);
 
-        let (commitment, proof) = SuccintGKRProtocol::prove(&circuit, &input, &tau);
+        let points = vec![Fr::from(54), Fr::from(90)];
+        let tau = TrustedSetup::<Bls12_381>::setup(&points);
+        let (commitment, proof) = SuccintGKRProtocol::prove(&circuit, &circuit_evaluation, &tau);
         let verify = SuccintGKRProtocol::verify(&circuit, &commitment, &proof, &tau);
 
         assert_eq!(verify, true);
@@ -327,15 +328,15 @@ mod tests {
             Fr::from(2u32),
         ];
 
-        let evaluation = circuit.evaluation(&input);
+        let circuit_evaluation = circuit.evaluation(&input);
 
-        assert_eq!(evaluation[0][0], Fr::from(308u32));
-        let points = vec![Fr::from(54), Fr::from(90), Fr::from(76), Fr::from(160)];
+        assert_eq!(circuit_evaluation[0][0], Fr::from(308u32));
+        let points = vec![Fr::from(54), Fr::from(90), Fr::from(76)];
 
         let tau = TrustedSetup::<Bls12_381>::setup(&points);
 
         let (commitment, proof) =
-            SuccintGKRProtocol::<Fr, Bls12_381>::prove(&circuit, &input, &tau);
+            SuccintGKRProtocol::<Fr, Bls12_381>::prove(&circuit, &circuit_evaluation, &tau);
         let verify =
             SuccintGKRProtocol::<Fr, Bls12_381>::verify(&circuit, &commitment, &proof, &tau);
 
@@ -386,14 +387,14 @@ mod tests {
             Fr::from(4u32),
         ];
 
-        let evaluation = circuit.evaluation(&input);
+        let circuit_evaluation = circuit.evaluation(&input);
 
-        assert_eq!(evaluation[0][0], Fr::from(224u32));
+        assert_eq!(circuit_evaluation[0][0], Fr::from(224u32));
         let points = vec![Fr::from(12), Fr::from(9), Fr::from(28), Fr::from(40)];
 
         let tau = TrustedSetup::<Bls12_381>::setup(&points);
 
-        let (commitment, proof) = SuccintGKRProtocol::prove(&circuit, &input, &tau);
+        let (commitment, proof) = SuccintGKRProtocol::prove(&circuit, &circuit_evaluation, &tau);
 
         let verify = SuccintGKRProtocol::verify(&circuit, &commitment, &proof, &tau);
         assert!(verify);

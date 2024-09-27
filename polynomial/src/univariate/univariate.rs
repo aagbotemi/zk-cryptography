@@ -254,8 +254,6 @@ impl<F: PrimeField> Display for UnivariatePolynomial<F> {
 }
 
 mod tests {
-    use std::result;
-
     use super::*;
     use crate::Fq;
 
