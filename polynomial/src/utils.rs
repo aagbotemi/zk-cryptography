@@ -1,4 +1,8 @@
-use crate::multilinear::coefficient_form::MultiLinearMonomial;
+use crate::{
+    multilinear::coefficient_form::MultiLinearMonomial,
+    univariate::dense_univariate::DenseUnivariatePolynomial, UnivariatePolynomialTrait,
+    // univariate::dense_univariate::DenseUnivariatePolynomial,
+};
 use ark_ff::{BigInteger, PrimeField, Zero};
 use num_bigint::BigUint;
 use num_complex::Complex;
@@ -94,6 +98,84 @@ pub fn lagrange_basis<F: PrimeField>(points: &[(F, F)], i: usize) -> Vec<F> {
     l_i.into_iter()
         .map(|coeff| coeff * denom.inverse().unwrap())
         .collect()
+}
+
+pub fn dense_langrange_basis<F: PrimeField>(
+    domain: &Vec<F>,
+    y_s: &Vec<F>,
+) -> Vec<DenseUnivariatePolynomial<F>> {
+    let mut basis = Vec::new();
+
+    if domain.len() != y_s.len() {
+        panic!(
+            "The length of domain and y_s should be the same: {}, {}",
+            domain.len(),
+            y_s.len()
+        );
+    }
+
+    for i in 0..domain.len() {
+        let mut basis_element = DenseUnivariatePolynomial::new(vec![F::one()]);
+
+        for j in 0..domain.len() {
+            if i == j {
+                continue;
+            }
+
+            // basis_element *= "x - domain[j]" / (domain[i] - domain[j]);
+            let numerator =
+                DenseUnivariatePolynomial::from_coefficients_vec(vec![-domain[j], F::one()]);
+            let denominator = domain[i] - domain[j];
+            basis_element = basis_element
+                * (numerator
+                    * DenseUnivariatePolynomial::from_coefficients_vec(vec![denominator
+                        .inverse()
+                        .unwrap()]));
+        }
+
+        basis.push(basis_element * DenseUnivariatePolynomial::from_coefficients_vec(vec![y_s[i]]));
+    }
+
+    basis
+}
+
+pub fn get_langrange_basis<F: PrimeField>(
+    domain: &Vec<F>,
+    y_s: &Vec<F>,
+) -> Vec<DenseUnivariatePolynomial<F>> {
+    let mut basis = Vec::new();
+
+    if domain.len() != y_s.len() {
+        panic!(
+            "The length of domain and y_s should be the same: {}, {}",
+            domain.len(),
+            y_s.len()
+        );
+    }
+
+    for i in 0..domain.len() {
+        let mut basis_element = DenseUnivariatePolynomial::new(vec![F::one()]);
+
+        for j in 0..domain.len() {
+            if i == j {
+                continue;
+            }
+
+            // basis_element *= "x - domain[j]" / (domain[i] - domain[j]);
+            let numerator =
+                DenseUnivariatePolynomial::from_coefficients_vec(vec![-domain[j], F::one()]);
+            let denominator = domain[i] - domain[j];
+            basis_element = basis_element
+                * (numerator
+                    * DenseUnivariatePolynomial::from_coefficients_vec(vec![denominator
+                        .inverse()
+                        .unwrap()]));
+        }
+
+        basis.push(basis_element * DenseUnivariatePolynomial::from_coefficients_vec(vec![y_s[i]]));
+    }
+
+    basis
 }
 
 pub fn boolean_hypercube<F: PrimeField>(n: usize) -> Vec<Vec<F>> {
@@ -205,6 +287,12 @@ pub fn convert_prime_field_to_f64<F: PrimeField>(input: F) -> f64 {
     biguint.to_f64().unwrap()
 }
 
+pub fn prime_field_to_usize<F: PrimeField>(input: F) -> usize {
+    let bigint = input.into_bigint();
+    let biguint = BigUint::from_bytes_le(&bigint.to_bytes_le());
+    biguint.to_usize().unwrap()
+}
+
 pub fn compute_number_of_variables(n: u128) -> (u128, u128) {
     if n == 0 {
         return (0, 0);
@@ -235,10 +323,26 @@ pub fn generate_random<F: PrimeField>(n: usize) -> Vec<F> {
     result
 }
 
+pub fn remove_trailing_and_redundant_zeros<F: PrimeField>(coeff: &Vec<F>) -> Vec<F> {
+    let mut coefficients = coeff.clone();
+    let last_non_zero = coefficients.iter().rposition(|&x| x != F::zero());
+
+    match last_non_zero {
+        Some(index) => coefficients.truncate(index + 1),
+        None => coefficients.clear(),
+    }
+
+    coefficients
+}
+
 #[cfg(test)]
 mod tests {
+    use field_tracker::Ft;
+
     use super::*;
-    use crate::Fq;
+    use crate::Fq as Fq_old;
+
+    type Fq = Ft<1, Fq_old>;
 
     #[test]
     fn test_boolean_hypercube() {
@@ -267,5 +371,6 @@ mod tests {
         assert_eq!(one, expected_one);
         assert_eq!(two, expected_two);
         assert_eq!(three, expected_three);
+        println!("{}", Fq::summary());
     }
 }

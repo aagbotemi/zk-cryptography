@@ -3,7 +3,7 @@ use ark_ff::PrimeField;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
 use polynomial::{
     interface::ComposedMultilinearTrait, ComposedMultilinear, MultilinearTrait,
-    UnivariatePolynomial, UnivariatePolynomialTrait,
+    SparseUnivariatePolynomial, UnivariatePolynomialTrait,
 };
 
 #[derive(Debug, Clone)]
@@ -79,8 +79,8 @@ impl<F: PrimeField> ComposedSumcheck<F> {
             challenges.push(challenge);
 
             let round_polys_uni: Vec<(F, F)> = convert_round_poly_to_uni_poly_format(&round_poly);
-            let uni_poly: UnivariatePolynomial<F> =
-                UnivariatePolynomial::interpolation(&round_polys_uni);
+            let uni_poly: SparseUnivariatePolynomial<F> =
+                SparseUnivariatePolynomial::interpolation(&round_polys_uni);
 
             let eval_p0_p1 = uni_poly.evaluate(F::zero()) + uni_poly.evaluate(F::one());
             if claimed_sum != eval_p0_p1 {
@@ -98,8 +98,11 @@ impl<F: PrimeField> ComposedSumcheck<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_test_curves::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr as Fr_old;
+    use field_tracker::Ft;
     use polynomial::Multilinear;
+
+    type Fr = Ft<4, Fr_old>;
 
     #[test]
     fn test_sum_calculation() {
@@ -133,6 +136,7 @@ mod tests {
         let composedpoly4 = ComposedMultilinear::new(vec![poly1]);
         let sum4 = ComposedSumcheck::calculate_poly_sum(&composedpoly4);
         assert_eq!(sum4, Fr::from(12));
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -152,6 +156,7 @@ mod tests {
         let sum = ComposedSumcheck::calculate_poly_sum(&proof.poly);
         let verifer: bool = sumcheck.verify(&proof, sum);
         assert_eq!(verifer, true);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -172,6 +177,7 @@ mod tests {
         let sum = ComposedSumcheck::calculate_poly_sum(&proof.poly);
         let verifer: bool = sumcheck.verify(&proof, sum);
         assert_eq!(verifer, true);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -201,6 +207,7 @@ mod tests {
         let verifer = sumcheck.verify(&proof.0, sum);
 
         assert_eq!(verifer, true);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -230,5 +237,6 @@ mod tests {
         let verifer = sumcheck.verify(&proof.0, sum);
 
         assert_eq!(verifer, true);
+        println!("{}", Fr::summary());
     }
 }

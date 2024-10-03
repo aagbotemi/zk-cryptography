@@ -123,8 +123,13 @@ impl<F: PrimeField> Display for MultiLinearCoefficientPolynomial<F> {
 
 #[cfg(test)]
 mod tests {
+    use field_tracker::Ft;
+
     use super::{MultiLinearCoefficientPolynomial, MultiLinearMonomial};
-    use crate::Fq;
+    
+    use crate::Fq as Fq_old;
+
+    type Fq = Ft<1, Fq_old>;
 
     fn init() -> MultiLinearCoefficientPolynomial<Fq> {
         let term1 = MultiLinearMonomial::new(Fq::from(3), vec![false, false]); // 3
@@ -152,20 +157,23 @@ mod tests {
 
         let p_eval = polynomial.partial_evaluation(Fq::from(3_u8));
         assert_eq!(p_eval, result_polynomial);
+        println!("{}", Fq::summary());
     }
 
     #[test]
     fn test_full_evaluation_1() {
         let polynomial = init();
         let evaluation = polynomial.evaluation(&vec![Fq::from(5_u8), Fq::from(6_u8)]);
-        assert_eq!(evaluation, Fq::from(0_u8))
+        assert_eq!(evaluation, Fq::from(0_u8));
+        println!("{}", Fq::summary());
     }
 
     #[test]
     fn test_full_evaluation_2() {
         let polynomial = init();
         let evaluation = polynomial.evaluation(&vec![Fq::from(2_u8), Fq::from(3_u8)]);
-        assert_eq!(evaluation, Fq::from(8_u8))
+        assert_eq!(evaluation, Fq::from(8_u8));
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -173,5 +181,6 @@ mod tests {
         let polynomial = init();
         let degree = polynomial.degree();
         assert_eq!(degree, 2);
+        println!("{}", Fq::summary());
     }
 }

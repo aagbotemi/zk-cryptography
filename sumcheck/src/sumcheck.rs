@@ -97,9 +97,12 @@ impl<F: PrimeField> Sumcheck<F> {
 
 #[cfg(test)]
 mod tests {
-    use ark_test_curves::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr as Fr_old;
+    use field_tracker::Ft;
 
     use super::*;
+
+    type Fr = Ft<4, Fr_old>;
 
     #[test]
     fn test_sum_calculation() {
@@ -116,6 +119,7 @@ mod tests {
         let mut prover = Sumcheck::new(poly);
         prover.poly_sum();
         assert_eq!(prover.sum, Fr::from(12));
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -136,6 +140,7 @@ mod tests {
         let verifer: bool = sumcheck.verify(&proof);
 
         assert_eq!(verifer, true);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -164,6 +169,7 @@ mod tests {
         let verifer = sumcheck.verify(&proof.0);
 
         assert_eq!(verifer, true);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -192,5 +198,6 @@ mod tests {
         let verifer = sumcheck.verify(&proof.0);
 
         assert_eq!(verifer, true);
+        println!("{}", Fr::summary());
     }
 }

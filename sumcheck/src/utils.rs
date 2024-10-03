@@ -61,8 +61,11 @@ pub fn composed_poly_to_bytes<F: PrimeField>(poly: &[ComposedMultilinear<F>]) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_test_curves::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr as Fr_old;
+    use field_tracker::Ft;
     use polynomial::ComposedMultilinear;
+
+    type Fr = Ft<4, Fr_old>;
 
     #[test]
     fn test_convert_field_to_byte() {
@@ -86,6 +89,7 @@ mod tests {
         assert_eq!(one, expected_one);
         assert_eq!(hundred, expected_hundred);
         assert_ne!(ninety, incorrect_ninety);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -118,6 +122,7 @@ mod tests {
 
         assert_eq!(evaluation1, expected_polynomial1);
         assert_eq!(evaluation2, expected_polynomial2);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -132,7 +137,8 @@ mod tests {
                 (Fr::from(2), Fr::from(1)),
                 (Fr::from(3), Fr::from(1))
             ]
-        )
+        );
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -155,5 +161,6 @@ mod tests {
             res == Fr::from(36),
             "Incorrect sum over the boolean hypercube"
         );
+        println!("{}", Fr::summary());
     }
 }

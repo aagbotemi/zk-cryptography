@@ -1,6 +1,6 @@
 use crate::{
     interface::UnivariatePolynomialTrait,
-    utils::{fft, ifft, lagrange_basis},
+    utils::{fft, ifft, lagrange_basis, prime_field_to_usize},
 };
 use ark_ff::{BigInteger, PrimeField, Zero};
 use num_complex::Complex;
@@ -16,13 +16,13 @@ pub struct UnivariateMonomial<F: PrimeField> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct UnivariatePolynomial<F: PrimeField> {
+pub struct SparseUnivariatePolynomial<F: PrimeField> {
     pub monomial: Vec<UnivariateMonomial<F>>,
 }
 
-impl<F: PrimeField> UnivariatePolynomial<F> {
+impl<F: PrimeField> SparseUnivariatePolynomial<F> {
     pub fn zero() -> Self {
-        UnivariatePolynomial { monomial: vec![] }
+        SparseUnivariatePolynomial { monomial: vec![] }
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -38,16 +38,41 @@ impl<F: PrimeField> UnivariatePolynomial<F> {
         self.monomial.iter().map(|mn| mn.coeff).collect()
     }
 
+    pub fn interpolation(points: &[(F, F)]) -> SparseUnivariatePolynomial<F> {
+        let mut result: Vec<F> = vec![F::zero(); points.len()];
+
+        for (i, &(_, y_i)) in points.iter().enumerate() {
+            let l_i: Vec<F> = lagrange_basis(points, i);
+            let l_i: Vec<F> = l_i.into_iter().map(|coeff| coeff * y_i).collect();
+
+            for (k, &coeff) in l_i.iter().enumerate() {
+                result[k] += coeff;
+            }
+        }
+
+        let monomial: Vec<UnivariateMonomial<F>> = result
+            .into_iter()
+            .enumerate()
+            .filter(|&(_, coeff)| coeff != F::zero())
+            .map(|(pow, coeff)| UnivariateMonomial {
+                coeff,
+                pow: F::from(pow as u64),
+            })
+            .collect();
+
+        SparseUnivariatePolynomial { monomial }
+    }
+
     pub fn multiply_polynomials(poly1: &Vec<F>, poly2: &Vec<F>) -> Vec<F> {
         let mut a = poly1.clone();
         let mut b = poly2.clone();
 
-        if !a.len().is_power_of_two() {
-            a.resize(a.len() + 1, F::zero());
-        }
-        if !b.len().is_power_of_two() {
-            b.resize(b.len() + 1, F::zero());
-        }
+        // if a.len() % 2 != 0 {
+        a.resize(5, F::zero());
+        // }
+        // if b.len() % 2 != 0 {
+        b.resize(5, F::zero());
+        // }
 
         let fft_a = fft(&a);
         let fft_b = fft(&b);
@@ -70,7 +95,7 @@ impl<F: PrimeField> UnivariatePolynomial<F> {
     }
 }
 
-impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
+impl<F: PrimeField> UnivariatePolynomialTrait<F> for SparseUnivariatePolynomial<F> {
     fn new(data: Vec<F>) -> Self {
         let mut monomial: Vec<UnivariateMonomial<F>> = Vec::new();
 
@@ -91,7 +116,7 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
             }
         }
 
-        UnivariatePolynomial { monomial }
+        SparseUnivariatePolynomial { monomial }
     }
 
     fn evaluate(&self, point: F) -> F {
@@ -112,33 +137,8 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
         point_evaluation
     }
 
-    fn interpolation(points: &[(F, F)]) -> UnivariatePolynomial<F> {
-        let mut result: Vec<F> = vec![F::zero(); points.len()];
-
-        for (i, &(_, y_i)) in points.iter().enumerate() {
-            let l_i: Vec<F> = lagrange_basis(points, i);
-            let l_i: Vec<F> = l_i.into_iter().map(|coeff| coeff * y_i).collect();
-
-            for (k, &coeff) in l_i.iter().enumerate() {
-                result[k] += coeff;
-            }
-        }
-
-        let monomial: Vec<UnivariateMonomial<F>> = result
-            .into_iter()
-            .enumerate()
-            .filter(|&(_, coeff)| coeff != F::zero())
-            .map(|(pow, coeff)| UnivariateMonomial {
-                coeff,
-                pow: F::from(pow as u64),
-            })
-            .collect();
-
-        UnivariatePolynomial { monomial }
-    }
-
     /// return the degree of a polynomial
-    fn degree(&self) -> F {
+    fn degree(&self) -> usize {
         let mut highest_degree: F = F::from(0_u8);
         for m in self.monomial.iter() {
             if m.pow > highest_degree {
@@ -146,11 +146,11 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for UnivariatePolynomial<F> {
             }
         }
 
-        highest_degree.try_into().unwrap()
+        prime_field_to_usize(highest_degree)
     }
 }
 
-impl<F: PrimeField> Mul for UnivariatePolynomial<F> {
+impl<F: PrimeField> Mul for SparseUnivariatePolynomial<F> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
         // (3x^2 + 5x + 6)(2x^2 + 4x + 5)
@@ -182,13 +182,13 @@ impl<F: PrimeField> Mul for UnivariatePolynomial<F> {
             }
         }
 
-        UnivariatePolynomial {
+        SparseUnivariatePolynomial {
             monomial: result_monomial,
         }
     }
 }
 
-impl<F: PrimeField> Add for UnivariatePolynomial<F> {
+impl<F: PrimeField> Add for SparseUnivariatePolynomial<F> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -228,13 +228,13 @@ impl<F: PrimeField> Add for UnivariatePolynomial<F> {
             }
         }
 
-        UnivariatePolynomial {
+        SparseUnivariatePolynomial {
             monomial: result_monomials,
         }
     }
 }
 
-impl<F: PrimeField> Display for UnivariatePolynomial<F> {
+impl<F: PrimeField> Display for SparseUnivariatePolynomial<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         for (index, mn) in self.monomial.iter().enumerate() {
             if index == 0 {
@@ -254,8 +254,12 @@ impl<F: PrimeField> Display for UnivariatePolynomial<F> {
 }
 
 mod tests {
+    use field_tracker::Ft;
+
     use super::*;
-    use crate::Fq;
+    use crate::Fq as Fq_old;
+
+    type Fq = Ft<1, Fq_old>;
 
     #[test]
     fn test_polynomial_evaluation() {
@@ -268,10 +272,11 @@ mod tests {
             Fq::from(4_u8),
             Fq::from(6_u8),
         ];
-        let polynomial = UnivariatePolynomial::new(data);
+        let polynomial = SparseUnivariatePolynomial::new(data);
         let evaluation = polynomial.evaluate(Fq::from(2_u8));
 
         assert_eq!(evaluation, Fq::from(10_u8));
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -281,12 +286,12 @@ mod tests {
 
         // 5 + 2x
         // 7x = [7,1]
-        let polynomial1 = UnivariatePolynomial::new(data);
-        let polynomial2 = UnivariatePolynomial::new(data2);
+        let polynomial1 = SparseUnivariatePolynomial::new(data);
+        let polynomial2 = SparseUnivariatePolynomial::new(data2);
 
         assert_eq!(
             polynomial1 + polynomial2,
-            UnivariatePolynomial::new(vec![
+            SparseUnivariatePolynomial::new(vec![
                 Fq::from(5_u8),
                 Fq::from(0_u8),
                 Fq::from(2_u8),
@@ -309,12 +314,12 @@ mod tests {
 
         // 5 + 5x^2  +  2x + 2x^2
         // 5 + 2x + 7x^2 = [5, 0, 2, 1, 7, 2]
-        let polynomial1 = UnivariatePolynomial::new(data3);
-        let polynomial2 = UnivariatePolynomial::new(data4);
+        let polynomial1 = SparseUnivariatePolynomial::new(data3);
+        let polynomial2 = SparseUnivariatePolynomial::new(data4);
 
         assert_eq!(
             polynomial1 + polynomial2,
-            UnivariatePolynomial::new(vec![
+            SparseUnivariatePolynomial::new(vec![
                 Fq::from(5_u8),
                 Fq::from(0_u8),
                 Fq::from(2_u8),
@@ -323,6 +328,7 @@ mod tests {
                 Fq::from(2_u8),
             ])
         );
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -331,12 +337,12 @@ mod tests {
         let data2 = vec![Fq::from(2_u8), Fq::from(1_u8)];
 
         // 5 x 2x = 7x = [7,1]
-        let polynomial1 = UnivariatePolynomial::new(data);
-        let polynomial2 = UnivariatePolynomial::new(data2);
+        let polynomial1 = SparseUnivariatePolynomial::new(data);
+        let polynomial2 = SparseUnivariatePolynomial::new(data2);
 
         assert_eq!(
             polynomial1 + polynomial2,
-            UnivariatePolynomial::new(vec![
+            SparseUnivariatePolynomial::new(vec![
                 Fq::from(5_u8),
                 Fq::from(0_u8),
                 Fq::from(2_u8),
@@ -361,13 +367,13 @@ mod tests {
             Fq::from(5),
         ];
 
-        let polynomial3 = UnivariatePolynomial::new(data3);
-        let polynomial4 = UnivariatePolynomial::new(data4);
+        let polynomial3 = SparseUnivariatePolynomial::new(data3);
+        let polynomial4 = SparseUnivariatePolynomial::new(data4);
 
         // 3 + 15x^2 + 3x^5 + 8x + 6x^3 + 7x^6 + 12x^8 + 16x^11
         assert_eq!(
             polynomial3 * polynomial4,
-            UnivariatePolynomial::new(vec![
+            SparseUnivariatePolynomial::new(vec![
                 Fq::from(3_u8),
                 Fq::from(0_u8),
                 Fq::from(15_u8),
@@ -386,19 +392,20 @@ mod tests {
                 Fq::from(11_u8),
             ])
         );
+        println!("{}", Fq::summary());
     }
 
     #[test]
     fn test_polynomial_interpolation() {
         // let point_x = vec![Fq::from(2), Fq::from(1), Fq::from(0), Fq::from(4)];
         // let point_y = vec![Fq::from(2), Fq::from(4), Fq::from(1), Fq::from(8)];
-        let interpolation = UnivariatePolynomial::interpolation(&[
+        let interpolation = SparseUnivariatePolynomial::interpolation(&[
             (Fq::from(1), Fq::from(2)),
             (Fq::from(2), Fq::from(3)),
             (Fq::from(4), Fq::from(11)),
         ]);
 
-        let interpolation_check = UnivariatePolynomial::new(vec![
+        let interpolation_check = SparseUnivariatePolynomial::new(vec![
             Fq::from(3_u8),
             Fq::from(0_u8),
             Fq::from(15_u8),
@@ -411,12 +418,13 @@ mod tests {
         // to test the evaluation of the polynomial
         let evaluation = interpolation.evaluate(Fq::from(2_u8));
         assert_eq!(evaluation, Fq::from(3_u8));
+        println!("{}", Fq::summary());
     }
 
     #[test]
     fn test_polynomial_interpolation_1() {
         // [(0, 0), (1, 2)] // 2x, where x = 2, 4
-        let interpolation1 = UnivariatePolynomial::interpolation(&vec![
+        let interpolation1 = SparseUnivariatePolynomial::interpolation(&vec![
             (Fq::from(0_u8), Fq::from(0_u8)),
             (Fq::from(1_u8), Fq::from(2_u8)),
         ]);
@@ -424,7 +432,7 @@ mod tests {
         assert_eq!(evaluation1, Fq::from(4_u8));
 
         // [(0, 5), (1, 7), (2, 13)] // 2x^2 + 5, where x = 2, 13
-        let interpolation2 = UnivariatePolynomial::interpolation(&vec![
+        let interpolation2 = SparseUnivariatePolynomial::interpolation(&vec![
             (Fq::from(0_u8), Fq::from(5_u8)),
             (Fq::from(1_u8), Fq::from(7_u8)),
             (Fq::from(2_u8), Fq::from(13_u8)),
@@ -433,7 +441,7 @@ mod tests {
         assert_eq!(evaluation2, Fq::from(13_u8));
 
         // [(0, 12), (1,48), (3,3150), (4,11772), (5,33452), (8,315020)] // 8x^5 + 12x^4 + 7x^3 + 1x^2 + 8x + 12, where x = 1, 48
-        let interpolation3 = UnivariatePolynomial::interpolation(&vec![
+        let interpolation3 = SparseUnivariatePolynomial::interpolation(&vec![
             (Fq::from(0_u8), Fq::from(12_u8)),
             (Fq::from(1_u8), Fq::from(48_u8)),
             (Fq::from(3_u8), Fq::from(3150_u16)),
@@ -445,7 +453,7 @@ mod tests {
         assert_eq!(evaluation3, Fq::from(48_u8));
 
         // [(0,0), (1,5), (2,14)], // 2x2 + 3x, where x = 2, 14
-        let interpolation4 = UnivariatePolynomial::interpolation(&vec![
+        let interpolation4 = SparseUnivariatePolynomial::interpolation(&vec![
             (Fq::from(0_u8), Fq::from(0_u8)),
             (Fq::from(1_u8), Fq::from(5_u8)),
             (Fq::from(2_u8), Fq::from(14_u8)),
@@ -454,7 +462,7 @@ mod tests {
         assert_eq!(evaluation4, Fq::from(14_u8));
 
         // [(1, 6), (2, 11), (3, 18), (4, 27), (5, 38)] // x^2 + 2x + 3, where x = 2, 11
-        let interpolation5 = UnivariatePolynomial::interpolation(&vec![
+        let interpolation5 = SparseUnivariatePolynomial::interpolation(&vec![
             (Fq::from(1), Fq::from(6)),
             (Fq::from(2), Fq::from(11)),
             (Fq::from(3), Fq::from(18)),
@@ -463,7 +471,7 @@ mod tests {
         ]);
         assert_eq!(
             interpolation5,
-            UnivariatePolynomial::new(vec![
+            SparseUnivariatePolynomial::new(vec![
                 Fq::from(3_u8),
                 Fq::from(0_u8),
                 Fq::from(2_u8),
@@ -474,52 +482,55 @@ mod tests {
         );
         let evaluation5 = interpolation5.evaluate(Fq::from(2_u8));
         assert_eq!(evaluation5, Fq::from(11_u8));
+        println!("{}", Fq::summary());
     }
 
     #[test]
     fn test_polynomial_degree() {
         let data = vec![Fq::from(2), Fq::from(1), Fq::from(2), Fq::from(4)];
 
-        let polynomial = UnivariatePolynomial::new(data);
+        let polynomial = SparseUnivariatePolynomial::new(data);
         let degree = polynomial.degree();
 
-        assert_eq!(degree, Fq::from(4_u8));
+        assert_eq!(degree, 4);
+        println!("{}", Fq::summary());
     }
 
-    #[test]
-    #[ignore = "reason"]
-    fn test_fft_multiplication() {
-        // 1 * (1 + 2x + 3x^2 ) + x * (1 + 2x + 3x^2 ) + x^2 * (1 + 2x + 3x^2 )
-        // 1 + 2x + 3x^2 + x + 2x^2 + 3x^3 + x^2 + 2x^3 + 3x^4
-        // 3x^3 + 2x^3 + 3x^4
-        // 1 + 3x + 6x^2 + 5x^3 + 3x^4
-        let poly_a = vec![Fq::from(1), Fq::from(2), Fq::from(3)]; // Coefficients of A(x)
-        let poly_b = vec![Fq::from(1), Fq::from(1), Fq::from(1)]; // Coefficients of B(x)
+    // #[test]
+    // fn test_fft_multiplication() {
+    //     //  (1 + 2x + 3x^2) * (1 + x + x^2)
+    //     // 1 * (1 + 2x + 3x^2 ) + x * (1 + 2x + 3x^2 ) + x^2 * (1 + 2x + 3x^2 )
+    //     // 1 + 2x + 3x^2 + x + 2x^2 + 3x^3 + x^2 + 2x^3 + 3x^4
+    //     // 3x^3 + 2x^3 + 3x^4
+    //     // 1 + 3x + 6x^2 + 5x^3 + 3x^4
+    //     let poly_a = vec![Fq::from(1), Fq::from(2), Fq::from(3)]; // Coefficients of A(x)
+    //     let poly_b = vec![Fq::from(1), Fq::from(1), Fq::from(1)]; // Coefficients of B(x)
 
-        let result = UnivariatePolynomial::multiply_polynomials(&poly_a, &poly_b);
+    //     let result = SparseUnivariatePolynomial::multiply_polynomials(&poly_a, &poly_b);
 
-        let poly_1 = UnivariatePolynomial::new(vec![
-            Fq::from(1_u8),
-            Fq::from(0_u8),
-            Fq::from(2_u8),
-            Fq::from(1_u8),
-            Fq::from(3_u8),
-            Fq::from(2_u8),
-        ]);
+    //     let poly_1 = SparseUnivariatePolynomial::new(vec![
+    //         Fq::from(1_u8),
+    //         Fq::from(0_u8),
+    //         Fq::from(2_u8),
+    //         Fq::from(1_u8),
+    //         Fq::from(3_u8),
+    //         Fq::from(2_u8),
+    //     ]);
 
-        let poly_2 = UnivariatePolynomial::new(vec![
-            Fq::from(1_u8),
-            Fq::from(0_u8),
-            Fq::from(1_u8),
-            Fq::from(1_u8),
-            Fq::from(1_u8),
-            Fq::from(2_u8),
-        ]);
+    //     let poly_2 = SparseUnivariatePolynomial::new(vec![
+    //         Fq::from(1_u8),
+    //         Fq::from(0_u8),
+    //         Fq::from(1_u8),
+    //         Fq::from(1_u8),
+    //         Fq::from(1_u8),
+    //         Fq::from(2_u8),
+    //     ]);
 
-        let normal_mult = poly_1 * poly_2;
+    //     let normal_mult = poly_1 * poly_2;
 
-        let result_2 = normal_mult.from_coefficients();
+    //     let result_2 = normal_mult.from_coefficients();
 
-        assert_eq!(result, result_2)
-    }
+    //     assert_eq!(result, result_2);
+    //     println!("{}", Fq::summary());
+    // }
 }

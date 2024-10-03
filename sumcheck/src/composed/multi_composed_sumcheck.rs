@@ -6,12 +6,12 @@ use ark_ff::PrimeField;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
 use polynomial::{
     interface::ComposedMultilinearTrait, ComposedMultilinear, MultilinearTrait,
-    UnivariatePolynomial, UnivariatePolynomialTrait,
+    SparseUnivariatePolynomial, UnivariatePolynomialTrait,
 };
 
 #[derive(Debug)]
 pub struct ComposedSumcheckProof<F: PrimeField> {
-    pub round_polys: Vec<UnivariatePolynomial<F>>,
+    pub round_polys: Vec<SparseUnivariatePolynomial<F>>,
     pub sum: F,
 }
 
@@ -74,7 +74,7 @@ impl MultiComposedSumcheckProver {
         let mut challenges: Vec<F> = vec![];
 
         for _ in 0..poly[0].n_vars() {
-            let mut round_poly = UnivariatePolynomial::zero();
+            let mut round_poly = SparseUnivariatePolynomial::zero();
 
             for p in current_poly.iter() {
                 let mut round_i_poly_vec = Vec::new();
@@ -88,7 +88,7 @@ impl MultiComposedSumcheckProver {
                     round_i_poly_vec.push(round);
                 }
 
-                let round_i_poly = UnivariatePolynomial::interpolation(
+                let round_i_poly = SparseUnivariatePolynomial::interpolation(
                     &convert_round_poly_to_uni_poly_format(&round_i_poly_vec),
                 );
                 round_poly = round_poly + round_i_poly;
@@ -186,9 +186,12 @@ mod tests {
     use crate::sumcheck;
 
     use super::*;
-    use ark_test_curves::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr as Fr_old;
+    use field_tracker::Ft;
     use polynomial::interface::MultilinearTrait;
     use polynomial::Multilinear;
+
+    type Fr = Ft<4, Fr_old>;
 
     #[test]
     fn test_sum_calculation() {
@@ -209,6 +212,7 @@ mod tests {
         let multi_composed_vec_2 = vec![composedmle3, composedmle4];
         let sum_2 = MultiComposedSumcheckProver::calculate_poly_sum(&multi_composed_vec_2);
         assert_eq!(sum_2, Fr::from(8));
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -225,6 +229,7 @@ mod tests {
         let (proof, _) = MultiComposedSumcheckProver::prove(&multi_composed, &sum).unwrap();
         let verify = MultiComposedSumcheckVerifier::verify(&multi_composed, &proof).unwrap();
         assert!(verify);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -241,6 +246,7 @@ mod tests {
         let (proof, _) = MultiComposedSumcheckProver::prove(&multi_composed, &sum).unwrap();
         let verify = MultiComposedSumcheckVerifier::verify(&multi_composed, &proof).unwrap();
         assert!(verify);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -256,6 +262,7 @@ mod tests {
         let (proof, _) = MultiComposedSumcheckProver::prove(&multi_composed, &sum).unwrap();
         let verify = MultiComposedSumcheckVerifier::verify(&multi_composed, &proof).unwrap();
         assert!(verify);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -302,5 +309,6 @@ mod tests {
         let (proof, _) = MultiComposedSumcheckProver::prove(&multi_composed, &sum).unwrap();
         let verify = MultiComposedSumcheckVerifier::verify(&multi_composed, &proof).unwrap();
         assert!(verify);
+        println!("{}", Fr::summary());
     }
 }

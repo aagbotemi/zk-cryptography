@@ -20,11 +20,11 @@ pub fn create_shares<F: PrimeField>(
         }
     }
 
-    let polynom: UnivariatePolynomial<F> = UnivariatePolynomial::interpolation(&secret_shares);
+    let polynom: SparseUnivariatePolynomial<F> = SparseUnivariatePolynomial::interpolation(&secret_shares);
 
     let mut shares: Vec<(F, F)> = Vec::with_capacity(threshold);
     for i in 1..=total_shares {
-        let evaluation = UnivariatePolynomial::evaluate(&polynom, F::from(i as u64));
+        let evaluation = SparseUnivariatePolynomial::evaluate(&polynom, F::from(i as u64));
         shares.push((F::from(i as u64), evaluation));
     }
 
@@ -32,15 +32,20 @@ pub fn create_shares<F: PrimeField>(
 }
 
 pub fn reconstruct_secret<F: PrimeField>(shares: &[(F, F)], point: F) -> F {
-    let polynom: UnivariatePolynomial<F> = UnivariatePolynomial::interpolation(shares);
-    let evaluation: F = UnivariatePolynomial::evaluate(&polynom, point);
+    let polynom: SparseUnivariatePolynomial<F> = SparseUnivariatePolynomial::interpolation(shares);
+    let evaluation: F = SparseUnivariatePolynomial::evaluate(&polynom, point);
     evaluation
 }
 
 #[cfg(test)]
 mod tests {
     use crate::shamir_secret::{create_shares, reconstruct_secret};
-    use ark_test_curves::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr as Fr_old;
+    use field_tracker::Ft;
+
+    use super::*;
+
+    type Fr = Ft<4, Fr_old>;
 
     #[test]
     fn test_create_shares_and_reconstruct_secret() {
@@ -54,7 +59,8 @@ mod tests {
         let reconstruct_at = Fr::from(0);
         let reconstructed_secret = reconstruct_secret(&picked_points, reconstruct_at);
 
-        assert_eq!(secret, reconstructed_secret)
+        assert_eq!(secret, reconstructed_secret);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -69,7 +75,8 @@ mod tests {
         let reconstruct_at = Fr::from(0);
         let reconstructed_secret = reconstruct_secret(&picked_points, reconstruct_at);
 
-        assert_eq!(secret, reconstructed_secret)
+        assert_eq!(secret, reconstructed_secret);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -92,5 +99,6 @@ mod tests {
 
         assert_ne!(secret, reconstructed_secret_above_threshold);
         assert_ne!(secret, reconstructed_secret_below_threshold);
+        println!("{}", Fr::summary());
     }
 }

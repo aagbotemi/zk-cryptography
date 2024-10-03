@@ -12,3 +12,4 @@ polynomial = { path = "../polynomial" }
 ark-ff = "0.4.2"
 rand = "0.8.5"
 ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
+field-tracker = {git = "https://github.com/sublinearlabs/field-tracker", branch = "main"}

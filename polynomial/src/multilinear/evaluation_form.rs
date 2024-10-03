@@ -252,9 +252,14 @@ impl<F: PrimeField> Mul<F> for Multilinear<F> {
 
 #[cfg(test)]
 mod tests {
+    use field_tracker::Ft;
+
     use crate::interface::MultilinearTrait;
     use crate::multilinear::evaluation_form::Multilinear;
-    use crate::Fq;
+    
+    use crate::Fq as Fq_old;
+
+    type Fq = Ft<1, Fq_old>;
 
     #[test]
     fn test_add_mul_distinct() {
@@ -304,6 +309,7 @@ mod tests {
 
         assert_eq!(add_distinct, new_add_poly);
         assert_eq!(mul_distinct, new_mul_poly);
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -350,6 +356,7 @@ mod tests {
         // 2xy + 3x + 4y + 9
         let z_1_eval_result = new_polynomial_z_1.evaluation(&vec![Fq::from(3), Fq::from(2)]);
         assert_eq!(z_1_eval_result, Fq::from(38));
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -377,6 +384,7 @@ mod tests {
         let points_2 = vec![Fq::from(2), Fq::from(3), Fq::from(1)];
         let result_polynomial_2 = polynomial_2.evaluation(&points_2);
         assert_eq!(result_polynomial_2, Fq::from(5));
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -427,6 +435,7 @@ mod tests {
 
         assert_eq!(evaluation1, expected_polynomial1);
         assert_eq!(evaluation2, expected_polynomial2);
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -450,6 +459,7 @@ mod tests {
             res == Fq::from(36),
             "Incorrect sum over the boolean hypercube"
         );
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -494,6 +504,7 @@ mod tests {
         assert_eq!(add_to_front, expected_add_to_front_poly);
         assert_eq!(add_to_front2, expected_add_to_front_poly2);
         assert_eq!(add_to_back, expected_add_to_back_poly);
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -531,6 +542,7 @@ mod tests {
 
         let res1 = poly1 - poly2;
         assert_eq!(res1, poly3);
+        println!("{}", Fq::summary());
     }
 
     #[test]
@@ -540,6 +552,7 @@ mod tests {
 
         let expected_poly = Multilinear::new(vec![Fq::from(11), Fq::from(11)]);
 
-        assert_eq!(duplicate, expected_poly)
+        assert_eq!(duplicate, expected_poly);
+        println!("{}", Fq::summary());
     }
 }
