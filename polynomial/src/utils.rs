@@ -1,7 +1,6 @@
 use crate::{
     multilinear::coefficient_form::MultiLinearMonomial,
     univariate::dense_univariate::DenseUnivariatePolynomial, UnivariatePolynomialTrait,
-    // univariate::dense_univariate::DenseUnivariatePolynomial,
 };
 use ark_ff::{BigInteger, PrimeField, Zero};
 use num_bigint::BigUint;
@@ -101,45 +100,6 @@ pub fn lagrange_basis<F: PrimeField>(points: &[(F, F)], i: usize) -> Vec<F> {
 }
 
 pub fn dense_langrange_basis<F: PrimeField>(
-    domain: &Vec<F>,
-    y_s: &Vec<F>,
-) -> Vec<DenseUnivariatePolynomial<F>> {
-    let mut basis = Vec::new();
-
-    if domain.len() != y_s.len() {
-        panic!(
-            "The length of domain and y_s should be the same: {}, {}",
-            domain.len(),
-            y_s.len()
-        );
-    }
-
-    for i in 0..domain.len() {
-        let mut basis_element = DenseUnivariatePolynomial::new(vec![F::one()]);
-
-        for j in 0..domain.len() {
-            if i == j {
-                continue;
-            }
-
-            // basis_element *= "x - domain[j]" / (domain[i] - domain[j]);
-            let numerator =
-                DenseUnivariatePolynomial::from_coefficients_vec(vec![-domain[j], F::one()]);
-            let denominator = domain[i] - domain[j];
-            basis_element = basis_element
-                * (numerator
-                    * DenseUnivariatePolynomial::from_coefficients_vec(vec![denominator
-                        .inverse()
-                        .unwrap()]));
-        }
-
-        basis.push(basis_element * DenseUnivariatePolynomial::from_coefficients_vec(vec![y_s[i]]));
-    }
-
-    basis
-}
-
-pub fn get_langrange_basis<F: PrimeField>(
     domain: &Vec<F>,
     y_s: &Vec<F>,
 ) -> Vec<DenseUnivariatePolynomial<F>> {

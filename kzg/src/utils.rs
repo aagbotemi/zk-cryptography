@@ -59,13 +59,16 @@ pub fn sum_pairing_results<P: Pairing>(
 
 #[cfg(test)]
 mod tests {
-    use ark_test_curves::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr as Fr_old;
+    use field_tracker::Ft;
     use polynomial::{utils::boolean_hypercube, Multilinear};
 
     use crate::utils::generate_array_of_points;
 
     use super::{check_for_zero_and_one, get_poly_quotient, get_poly_remainder};
 
+    type Fr = Ft<4, Fr_old>;
+    
     #[test]
     fn test_check_for_zero_and_one() {
         let bh_1 = vec![Fr::from(0), Fr::from(0), Fr::from(0)];
@@ -95,6 +98,8 @@ mod tests {
         assert_eq!(checker_6, Fr::from(-16));
         assert_eq!(checker_7, Fr::from(-18));
         assert_eq!(checker_8, Fr::from(24));
+
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -122,6 +127,7 @@ mod tests {
         assert_eq!(quotient_x, expected_poly_after_quotient_x);
         assert_eq!(quotient_y, expected_poly_after_quotient_y);
         assert_eq!(quotient_z.evaluations[0], Fr::from(-11));
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -151,6 +157,8 @@ mod tests {
         assert_eq!(expected_poly_yz, remainder_after_x);
         assert_eq!(expected_poly_z, remainder_after_y);
         assert_eq!(Fr::from(114), remainder_after_z.evaluations[0]);
+
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -174,5 +182,7 @@ mod tests {
         let result_poly = Multilinear::new(array_of_points);
 
         assert_eq!(expected_poly, result_poly);
+
+        println!("{}", Fr::summary());
     }
 }

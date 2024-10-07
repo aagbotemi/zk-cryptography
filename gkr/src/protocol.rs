@@ -197,13 +197,15 @@ impl GKRProtocol {
 
 #[cfg(test)]
 mod tests {
-    use ark_test_curves::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr as Fr_old;
     use circuit::{
         circuit::CircuitLayer,
         gate::{Gate, GateType},
     };
+    use field_tracker::Ft;
 
     use super::*;
+    type Fr = Ft<4, Fr_old>;
 
     #[test]
     fn test_gkr_protocol_1() {
@@ -226,6 +228,7 @@ mod tests {
         let verify = GKRProtocol::verify(&circuit, &input, &proof);
 
         assert_eq!(verify, true);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -279,5 +282,6 @@ mod tests {
         let proof = GKRProtocol::prove(&circuit, &evaluation);
 
         assert!(GKRProtocol::verify(&circuit, &input, &proof));
+        println!("{}", Fr::summary());
     }
 }

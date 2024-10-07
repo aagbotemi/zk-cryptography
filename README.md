@@ -16,7 +16,7 @@ ZK-CRYPTOGRAPHY is a collection of cryptographic implementations focused on zero
 
 [Elliptic Curve Cryptography](/elliptic-curve) - elliptic curve cryptography implementation
 
-[Multilinear KZG](/multilinear-kzg) - multilinear kzg implementation
+[KZG](/kzg) - multilinear kzg and multilinear kzg implementation
 
 [Signature Schemes](/signature-schemes) - schnorr, rsa implementation
 

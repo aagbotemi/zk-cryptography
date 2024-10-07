@@ -1,16 +1,30 @@
 use crate::{
-    utils::{dense_langrange_basis, get_langrange_basis, remove_trailing_and_redundant_zeros},
+    utils::{dense_langrange_basis, remove_trailing_and_redundant_zeros},
     UnivariatePolynomialTrait,
 };
 use ark_ff::{BigInteger, PrimeField};
 use std::{
     fmt::{Display, Formatter, Result},
-    ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Rem, Sub, SubAssign},
 };
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DenseUnivariatePolynomial<F: PrimeField> {
     pub coefficients: Vec<F>,
+}
+
+impl<F: PrimeField> Index<usize> for DenseUnivariatePolynomial<F> {
+    type Output = F;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.coefficients[index]
+    }
+}
+
+impl<F: PrimeField> IndexMut<usize> for DenseUnivariatePolynomial<F> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.coefficients[index]
+    }
 }
 
 impl<F: PrimeField> DenseUnivariatePolynomial<F> {
@@ -48,6 +62,14 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
         &self.coefficients
     }
 
+    pub fn leading_coefficient(&self) -> Option<F> {
+        self.coefficients.last().cloned()
+    }
+
+    pub fn iter_with_index(&self) -> Vec<(usize, F)> {
+        self.coefficients.iter().cloned().enumerate().collect()
+    }
+
     pub fn interpolate(point_ys: Vec<F>, point_xs: Vec<F>) -> Self {
         let langrange_poly_vec = dense_langrange_basis(&point_xs, &point_ys);
         let langrange_poly = langrange_poly_vec
@@ -57,6 +79,45 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
             });
 
         langrange_poly
+    }
+
+    /// This function is used for poly division, returning the quotient and remainder
+    pub fn divide_with_q_and_r(
+        &self,
+        divisor: &Self,
+    ) -> Option<(DenseUnivariatePolynomial<F>, DenseUnivariatePolynomial<F>)> {
+        if self.is_zero() {
+            Some((
+                DenseUnivariatePolynomial::zero(),
+                DenseUnivariatePolynomial::zero(),
+            ))
+        } else if divisor.is_zero() {
+            panic!("Dividing by zero polynomial")
+        } else if self.degree() < divisor.degree() {
+            Some((DenseUnivariatePolynomial::zero(), self.clone().into()))
+        } else {
+            // Now we know that self.degree() >= divisor.degree();
+            let mut quotient = vec![F::zero(); self.degree() - divisor.degree() + 1];
+            let mut remainder: DenseUnivariatePolynomial<F> = self.clone().into();
+            // Can unwrap here because we know self is not zero.
+            let divisor_leading_inv = divisor.leading_coefficient().unwrap().inverse().unwrap();
+            while !remainder.is_zero() && remainder.degree() >= divisor.degree() {
+                let cur_q_coeff = *remainder.coefficients.last().unwrap() * divisor_leading_inv;
+                let cur_q_degree = remainder.degree() - divisor.degree();
+                quotient[cur_q_degree] = cur_q_coeff;
+
+                for (i, div_coeff) in divisor.iter_with_index() {
+                    remainder[cur_q_degree + i] -= &(cur_q_coeff * div_coeff);
+                }
+                while let Some(true) = remainder.coefficients.last().map(|c| c.is_zero()) {
+                    remainder.coefficients.pop();
+                }
+            }
+            Some((
+                DenseUnivariatePolynomial::from_coefficients_vec(quotient),
+                remainder,
+            ))
+        }
     }
 }
 
@@ -222,6 +283,28 @@ impl<F: PrimeField> Neg for DenseUnivariatePolynomial<F> {
         });
 
         self
+    }
+}
+
+// impl<F: PrimeField> SubAssign for DenseUnivariatePolynomial<F> {
+//     fn sub_assign(&mut self, rhs: Self) {
+//         *self += -rhs;
+//     }
+// }
+
+impl<F: PrimeField> Div for DenseUnivariatePolynomial<F> {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        self.divide_with_q_and_r(&other).expect("division failed").0
+    }
+}
+
+impl<F: PrimeField> Rem for DenseUnivariatePolynomial<F> {
+    type Output = Self;
+
+    fn rem(self, other: Self) -> Self {
+        self.divide_with_q_and_r(&other).expect("division failed").1
     }
 }
 

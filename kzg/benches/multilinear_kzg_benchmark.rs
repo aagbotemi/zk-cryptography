@@ -1,8 +1,8 @@
 use ark_test_curves::bls12_381::{Bls12_381, Fr};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use multilinear_kzg::{
+use kzg::{
     interface::{MultilinearKZGInterface, TrustedSetupInterface},
-    kzg::{MultilinearKZG, MultilinearKZGProof},
+    multilinear_kzg::{MultilinearKZG, MultilinearKZGProof},
     trusted_setup::TrustedSetup,
 };
 use polynomial::Multilinear;

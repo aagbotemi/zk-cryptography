@@ -30,11 +30,11 @@ impl<F: PrimeField, P: Pairing> Default for MultilinearKZGProof<F, P> {
 }
 
 impl<F: PrimeField, P: Pairing> MultilinearKZGInterface<F, P> for MultilinearKZG<F, P> {
-    fn commitment(poly: &Multilinear<F>, tau: &TrustedSetup<P>) -> P::G1 {
+    fn commitment(poly: &Multilinear<F>, srs: &TrustedSetup<P>) -> P::G1 {
         let evaluations: Vec<F> = poly.evaluations.clone();
 
         assert_eq!(
-            tau.powers_of_tau_in_g1.len(),
+            srs.powers_of_tau_in_g1.len(),
             evaluations.len(),
             "The length of powers_of_tau_in_g1 and the length of
             the evaluations of the polynomial should tally!"
@@ -42,7 +42,7 @@ impl<F: PrimeField, P: Pairing> MultilinearKZGInterface<F, P> for MultilinearKZG
 
         evaluations
             .iter()
-            .zip(tau.powers_of_tau_in_g1.iter())
+            .zip(srs.powers_of_tau_in_g1.iter())
             .map(|(coefficient, power)| power.mul_bigint(coefficient.into_bigint()))
             .sum()
     }
@@ -50,7 +50,7 @@ impl<F: PrimeField, P: Pairing> MultilinearKZGInterface<F, P> for MultilinearKZG
     fn open(
         poly_: &Multilinear<F>,
         evaluation_points: &[F],
-        tau: &TrustedSetup<P>,
+        srs: &TrustedSetup<P>,
     ) -> MultilinearKZGProof<F, P> {
         let evaluation = poly_.evaluation(evaluation_points);
 
@@ -75,7 +75,7 @@ impl<F: PrimeField, P: Pairing> MultilinearKZGInterface<F, P> for MultilinearKZG
                 blown_poly = duplicate_poly.add_to_front(&(variable_index - 1));
             }
 
-            let proof = Self::commitment(&blown_poly, &tau);
+            let proof = Self::commitment(&blown_poly, &srs);
             poly = remainder;
             proofs.push(proof);
         }
@@ -91,7 +91,7 @@ impl<F: PrimeField, P: Pairing> MultilinearKZGInterface<F, P> for MultilinearKZG
         commit: &P::G1,
         verifier_points: &[F],
         proof: &MultilinearKZGProof<F, P>,
-        tau: &TrustedSetup<P>,
+        srs: &TrustedSetup<P>,
     ) -> bool {
         let g1 = P::G1::generator();
         let g2 = P::G2::generator();
@@ -104,7 +104,7 @@ impl<F: PrimeField, P: Pairing> MultilinearKZGInterface<F, P> for MultilinearKZG
         let verifier_point_powers_of_tau_in_g2: Vec<P::G2> =
             TrustedSetup::<P>::generate_powers_of_tau_in_g2(verifier_points);
         let rhs = sum_pairing_results::<P>(
-            &tau.powers_of_tau_in_g2,
+            &srs.powers_of_tau_in_g2,
             &verifier_point_powers_of_tau_in_g2,
             &proof.proofs,
         );
@@ -115,15 +115,18 @@ impl<F: PrimeField, P: Pairing> MultilinearKZGInterface<F, P> for MultilinearKZG
 
 #[cfg(test)]
 mod tests {
-    use ark_test_curves::bls12_381::{Bls12_381, Fr};
+    use ark_test_curves::bls12_381::{Bls12_381, Fr as Fr_old};
+    use field_tracker::Ft;
     use polynomial::Multilinear;
 
     use super::MultilinearKZG;
     use crate::{
-        interface::TrustedSetupInterface,
-        kzg::{MultilinearKZGInterface, MultilinearKZGProof},
+        interface::{MultilinearKZGInterface, TrustedSetupInterface},
+        multilinear_kzg::MultilinearKZGProof,
         trusted_setup::TrustedSetup,
     };
+
+    type Fr = Ft<4, Fr_old>;
 
     #[test]
     fn test_kzg_1() {
@@ -148,7 +151,8 @@ mod tests {
             MultilinearKZG::open(&poly, &verifier_points, &tau);
         let verify_status = MultilinearKZG::verify(&commit, &verifier_points, &proof, &tau);
 
-        assert_eq!(verify_status, true)
+        assert_eq!(verify_status, true);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -190,5 +194,6 @@ mod tests {
 
         assert_eq!(verify_status, true);
         assert_eq!(tampered_tau_verify_status, false);
+        println!("{}", Fr::summary());
     }
 }

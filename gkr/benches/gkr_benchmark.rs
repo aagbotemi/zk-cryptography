@@ -6,7 +6,7 @@ use gkr::{
     succint_protocol::SuccintGKRProtocol,
     utils::w_mle,
 };
-use multilinear_kzg::{interface::TrustedSetupInterface, trusted_setup::TrustedSetup};
+use kzg::{interface::TrustedSetupInterface, trusted_setup::TrustedSetup};
 
 fn gkr_benchmark(c: &mut Criterion) {
     let circuit = Circuit::random(8);

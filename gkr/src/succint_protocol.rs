@@ -4,9 +4,9 @@ use ark_ec::pairing::Pairing;
 use ark_ff::PrimeField;
 use circuit::circuit::Circuit;
 use fiat_shamir::{fiat_shamir::FiatShamirTranscript, interface::FiatShamirTranscriptTrait};
-use multilinear_kzg::{
+use kzg::{
     interface::MultilinearKZGInterface,
-    kzg::{MultilinearKZG, MultilinearKZGProof},
+    multilinear_kzg::{MultilinearKZG, MultilinearKZGProof},
     trusted_setup::TrustedSetup,
 };
 use polynomial::{ComposedMultilinear, Multilinear, MultilinearTrait};
@@ -268,14 +268,17 @@ impl<F: PrimeField, P: Pairing> SuccintGKRProtocol<F, P> {
 
 #[cfg(test)]
 mod tests {
-    use ark_test_curves::bls12_381::{Bls12_381, Fr};
+    use ark_test_curves::bls12_381::{Bls12_381, Fr as Fr_old};
     use circuit::{
         circuit::{Circuit, CircuitLayer},
         gate::{Gate, GateType},
     };
-    use multilinear_kzg::{interface::TrustedSetupInterface, trusted_setup::TrustedSetup};
+    use field_tracker::Ft;
+    use kzg::{interface::TrustedSetupInterface, trusted_setup::TrustedSetup};
 
     use crate::succint_protocol::SuccintGKRProtocol;
+
+    type Fr = Ft<4, Fr_old>;
 
     #[test]
     fn test_succint_gkr_protocol_1() {
@@ -300,6 +303,7 @@ mod tests {
         let verify = SuccintGKRProtocol::verify(&circuit, &commitment, &proof, &tau);
 
         assert_eq!(verify, true);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -341,6 +345,7 @@ mod tests {
             SuccintGKRProtocol::<Fr, Bls12_381>::verify(&circuit, &commitment, &proof, &tau);
 
         assert!(&verify);
+        println!("{}", Fr::summary());
     }
 
     #[test]
@@ -398,5 +403,6 @@ mod tests {
 
         let verify = SuccintGKRProtocol::verify(&circuit, &commitment, &proof, &tau);
         assert!(verify);
+        println!("{}", Fr::summary());
     }
 }
