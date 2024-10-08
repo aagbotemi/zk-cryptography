@@ -1,9 +1,8 @@
 use crate::{
     interface::UnivariatePolynomialTrait,
-    utils::{fft, ifft, lagrange_basis, prime_field_to_usize},
+    utils::{lagrange_basis, prime_field_to_usize},
 };
-use ark_ff::{BigInteger, PrimeField, Zero};
-use num_complex::Complex;
+use ark_ff::{BigInteger, PrimeField};
 use std::{
     fmt::{Display, Formatter, Result},
     ops::{Add, Mul},
@@ -61,37 +60,6 @@ impl<F: PrimeField> SparseUnivariatePolynomial<F> {
             .collect();
 
         SparseUnivariatePolynomial { monomial }
-    }
-
-    pub fn multiply_polynomials(poly1: &Vec<F>, poly2: &Vec<F>) -> Vec<F> {
-        let mut a = poly1.clone();
-        let mut b = poly2.clone();
-
-        // if a.len() % 2 != 0 {
-        a.resize(5, F::zero());
-        // }
-        // if b.len() % 2 != 0 {
-        b.resize(5, F::zero());
-        // }
-
-        let fft_a = fft(&a);
-        let fft_b = fft(&b);
-
-        let mut fft_result = vec![Complex::zero(); fft_a.len()];
-        for i in 0..fft_a.len() {
-            fft_result[i] = fft_a[i] * fft_b[i];
-        }
-
-        let ifft_result = ifft(&fft_result);
-
-        let result: Vec<_> = ifft_result
-            .iter()
-            .map(|i| F::from(i.re.round() as u64))
-            .collect();
-
-        dbg!(&result);
-
-        result
     }
 }
 
@@ -495,42 +463,4 @@ mod tests {
         assert_eq!(degree, 4);
         println!("{}", Fq::summary());
     }
-
-    // #[test]
-    // fn test_fft_multiplication() {
-    //     //  (1 + 2x + 3x^2) * (1 + x + x^2)
-    //     // 1 * (1 + 2x + 3x^2 ) + x * (1 + 2x + 3x^2 ) + x^2 * (1 + 2x + 3x^2 )
-    //     // 1 + 2x + 3x^2 + x + 2x^2 + 3x^3 + x^2 + 2x^3 + 3x^4
-    //     // 3x^3 + 2x^3 + 3x^4
-    //     // 1 + 3x + 6x^2 + 5x^3 + 3x^4
-    //     let poly_a = vec![Fq::from(1), Fq::from(2), Fq::from(3)]; // Coefficients of A(x)
-    //     let poly_b = vec![Fq::from(1), Fq::from(1), Fq::from(1)]; // Coefficients of B(x)
-
-    //     let result = SparseUnivariatePolynomial::multiply_polynomials(&poly_a, &poly_b);
-
-    //     let poly_1 = SparseUnivariatePolynomial::new(vec![
-    //         Fq::from(1_u8),
-    //         Fq::from(0_u8),
-    //         Fq::from(2_u8),
-    //         Fq::from(1_u8),
-    //         Fq::from(3_u8),
-    //         Fq::from(2_u8),
-    //     ]);
-
-    //     let poly_2 = SparseUnivariatePolynomial::new(vec![
-    //         Fq::from(1_u8),
-    //         Fq::from(0_u8),
-    //         Fq::from(1_u8),
-    //         Fq::from(1_u8),
-    //         Fq::from(1_u8),
-    //         Fq::from(2_u8),
-    //     ]);
-
-    //     let normal_mult = poly_1 * poly_2;
-
-    //     let result_2 = normal_mult.from_coefficients();
-
-    //     assert_eq!(result, result_2);
-    //     println!("{}", Fq::summary());
-    // }
 }

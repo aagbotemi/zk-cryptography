@@ -4,7 +4,7 @@ use crate::{
 };
 use ark_ff::{BigInteger, PrimeField, Zero};
 use num_bigint::BigUint;
-use num_complex::Complex;
+use num_complex::{Complex, Complex64};
 use num_traits::ToPrimitive;
 use rand::thread_rng;
 use std::f64::consts::PI;
@@ -156,65 +156,43 @@ pub fn boolean_hypercube<F: PrimeField>(n: usize) -> Vec<Vec<F>> {
     hypercube
 }
 
-pub fn fft<F: PrimeField>(coefficients: &Vec<F>) -> Vec<Complex<f64>> {
+pub fn fft(coefficients: &Vec<Complex64>, inverse: bool) -> Vec<Complex64> {
+    // pub fn fft(coefficients: &mut Vec<Complex64>, inverse: bool) {
     let length_of_coefficients = coefficients.len();
 
-    if length_of_coefficients == 1 {
-        return vec![Complex::new(
-            convert_prime_field_to_f64(coefficients[0]),
-            0.0,
-        )];
+    if length_of_coefficients <= 1 {
+        return coefficients.to_vec();
     }
-
-    // nth root of unity => Z^n = 1
-    // 2π/n => e^iθ = cos(θ) + i.sin(θ)
-    // ω = e^(2πi/n)
-    let ω = nth_root_of_unity(length_of_coefficients, false);
-
     // Pe = [P0,P2,...,Pn-2]
     let poly_even = get_even_indexed_coefficients(&coefficients);
     // Po = [P1,P3,...,Pn-1]
     let poly_odd = get_odd_indexed_coefficients(&coefficients);
 
     // y_e = fft(Pe)
-    let y_e = fft(&poly_even);
+    let y_e = fft(&poly_even, inverse);
     // y_o = fft(Po)
-    let y_o = fft(&poly_odd);
+    let y_o = fft(&poly_odd, inverse);
+
+    // nth root of unity => Z^n = 1
+    // 2π/n => e^iθ = cos(θ) + i.sin(θ)
+    // ω = e^(2πi/n)
+    let ω = nth_root_of_unity(length_of_coefficients, inverse);
 
     // y = [0] * n
     let mut y = vec![Complex::zero(); length_of_coefficients];
     let half_len = length_of_coefficients / 2;
 
-    for j in 0..half_len {
-        let ω_pow_j = ω.powf(j as f64);
-        y[j] = y_e[j] + (ω_pow_j * y_o[j]);
-        y[j + half_len] = y_e[j] - (ω_pow_j * y_o[j]);
-    }
+    let mut w_i = Complex64::new(1.0, 0.0);
 
-    y
-}
+    for i in 0..half_len {
+        y[i] = y_e[i] + (w_i * y_o[i]);
+        y[i + half_len] = y_e[i] - (w_i * y_o[i]);
+        if inverse {
+            y[i] /= 2.0;
+            y[i + length_of_coefficients / 2] /= 2.0;
+        }
 
-pub fn ifft(coefficients: &Vec<Complex<f64>>) -> Vec<Complex<f64>> {
-    let length_of_coefficients = coefficients.len();
-    if length_of_coefficients == 1 {
-        return vec![coefficients[0]];
-    }
-
-    let ω = nth_root_of_unity(length_of_coefficients, true);
-
-    let poly_even = get_even_indexed_coefficients(&coefficients);
-    let poly_odd = get_odd_indexed_coefficients(&coefficients);
-
-    let y_e = ifft(&poly_even);
-    let y_o = ifft(&poly_odd);
-
-    let mut y = vec![Complex::zero(); length_of_coefficients];
-    let half_len = length_of_coefficients / 2;
-
-    for j in 0..half_len {
-        let ω_pow_j = ω.powf(j as f64);
-        y[j] = y_e[j] + (ω_pow_j * y_o[j]);
-        y[j + half_len] = y_e[j] - (ω_pow_j * y_o[j]);
+        w_i *= ω;
     }
 
     y

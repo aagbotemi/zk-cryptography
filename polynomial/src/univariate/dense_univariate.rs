@@ -1,8 +1,11 @@
 use crate::{
-    utils::{dense_langrange_basis, remove_trailing_and_redundant_zeros},
+    utils::{
+        convert_prime_field_to_f64, dense_langrange_basis, fft, remove_trailing_and_redundant_zeros,
+    },
     UnivariatePolynomialTrait,
 };
-use ark_ff::{BigInteger, PrimeField};
+use ark_ff::{BigInteger, PrimeField, Zero};
+use num_complex::{Complex, Complex64};
 use std::{
     fmt::{Display, Formatter, Result},
     ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Rem, Sub, SubAssign},
@@ -118,6 +121,54 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
                 remainder,
             ))
         }
+    }
+
+    pub fn fft_mult_poly(
+        polya: &DenseUnivariatePolynomial<F>,
+        polyb: &DenseUnivariatePolynomial<F>,
+    ) -> Self {
+        let poly1 = polya.coefficients.clone();
+        let poly2 = polyb.coefficients.clone();
+
+        let coefficient_length_of_resultant_poly = poly1.len() + poly2.len() - 1;
+        let coefficient_length_of_resultant_poly_pow_of_2 =
+            coefficient_length_of_resultant_poly.next_power_of_two();
+
+        let mut poly1_in_complex_form: Vec<Complex64> = poly1
+            .iter()
+            .map(|&x| Complex64::new(convert_prime_field_to_f64(x), 0.0))
+            .collect();
+        let mut poly2_in_complex_form: Vec<Complex64> = poly2
+            .iter()
+            .map(|&x| Complex64::new(convert_prime_field_to_f64(x), 0.0))
+            .collect();
+
+        poly1_in_complex_form.resize(
+            coefficient_length_of_resultant_poly_pow_of_2,
+            Complex64::new(0.0, 0.0),
+        );
+        poly2_in_complex_form.resize(
+            coefficient_length_of_resultant_poly_pow_of_2,
+            Complex64::new(0.0, 0.0),
+        );
+
+        let fft_poly1 = fft(&poly1_in_complex_form, false);
+        let fft_poly2 = fft(&poly2_in_complex_form, false);
+
+        let mut element_wise_product = vec![Complex::zero(); fft_poly1.len()];
+        for i in 0..fft_poly1.len() {
+            element_wise_product[i] = fft_poly1[i] * fft_poly2[i];
+        }
+
+        let inverse_fft = fft(&element_wise_product, true);
+
+        let result: Vec<F> = inverse_fft
+            .iter()
+            .take(coefficient_length_of_resultant_poly)
+            .map(|i| F::from(i.re.round() as u64))
+            .collect();
+
+        Self::new(result)
     }
 }
 
@@ -559,36 +610,23 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "reason"]
     fn test_fft_multiplication() {
-        // 1 * (1 + 2x + 3x^2 ) + x * (1 + 2x + 3x^2 ) + x^2 * (1 + 2x + 3x^2 )
-        // 1 + 2x + 3x^2 + x + 2x^2 + 3x^3 + x^2 + 2x^3 + 3x^4
-        // 3x^3 + 2x^3 + 3x^4
-        // 1 + 3x + 6x^2 + 5x^3 + 3x^4
-        let poly_a = vec![Fq::from(1), Fq::from(2), Fq::from(3)]; // Coefficients of A(x)
-        let poly_b = vec![Fq::from(1), Fq::from(1), Fq::from(1)]; // Coefficients of B(x)
-
-        // let result = DenseUnivariatePolynomial::multiply_polynomials(&poly_a, &poly_b);
-
-        let poly_1 = DenseUnivariatePolynomial::new(vec![
-            Fq::from(1_u8),
-            Fq::from(0_u8),
-            Fq::from(2_u8),
-            Fq::from(1_u8),
-            Fq::from(3_u8),
-            Fq::from(2_u8),
+        // (1 + 2x + 3x^2) * (4 + 5x + 6x^2)
+        // 4 * (1 + 2x + 3x^2) + 5x * (1 + 2x + 3x^2) + 6x^2 * (1 + 2x + 3x^2)
+        // 4 + 8x + 12x^2 + 5x + 10x^2 + 15x^3 + 6x^2 + 12x^3 + 18x^4
+        // 4 + 13x + 28x^2 + 27x^3 + 18x^4
+        // [4, 13, 28, 27, 18]
+        let poly_a = DenseUnivariatePolynomial::new(vec![Fq::from(1), Fq::from(2), Fq::from(3)]);
+        let poly_b = DenseUnivariatePolynomial::new(vec![Fq::from(4), Fq::from(5), Fq::from(6)]);
+        let result = DenseUnivariatePolynomial::fft_mult_poly(&poly_a, &poly_b);
+        let expected_result = DenseUnivariatePolynomial::new(vec![
+            Fq::from(4),
+            Fq::from(13),
+            Fq::from(28),
+            Fq::from(27),
+            Fq::from(18),
         ]);
 
-        let poly_2 = DenseUnivariatePolynomial::new(vec![
-            Fq::from(1_u8),
-            Fq::from(0_u8),
-            Fq::from(1_u8),
-            Fq::from(1_u8),
-            Fq::from(1_u8),
-            Fq::from(2_u8),
-        ]);
-
-        let result_2 = poly_1 * poly_2;
-        // assert_eq!(result, result_2)
+        assert_eq!(result, expected_result);
     }
 }
