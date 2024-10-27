@@ -125,11 +125,10 @@ impl<F: PrimeField> Display for MultiLinearCoefficientPolynomial<F> {
 mod tests {
     use field_tracker::Ft;
 
-    use super::{MultiLinearCoefficientPolynomial, MultiLinearMonomial};
-    
-    use crate::Fq as Fq_old;
+    use super::{MultiLinearCoefficientPolynomial, MultiLinearMonomial};   
+    use ark_test_curves::bls12_381::Fr as Fq_old;
 
-    type Fq = Ft<1, Fq_old>;
+    type Fq = Ft<4, Fq_old>;
 
     fn init() -> MultiLinearCoefficientPolynomial<Fq> {
         let term1 = MultiLinearMonomial::new(Fq::from(3), vec![false, false]); // 3
@@ -163,16 +162,16 @@ mod tests {
     #[test]
     fn test_full_evaluation_1() {
         let polynomial = init();
-        let evaluation = polynomial.evaluation(&vec![Fq::from(5_u8), Fq::from(6_u8)]);
-        assert_eq!(evaluation, Fq::from(0_u8));
+        let evaluation = polynomial.evaluation(&vec![Fq::from(5), Fq::from(6)]);
+        assert_eq!(evaluation, Fq::from(136));
         println!("{}", Fq::summary());
     }
 
     #[test]
     fn test_full_evaluation_2() {
         let polynomial = init();
-        let evaluation = polynomial.evaluation(&vec![Fq::from(2_u8), Fq::from(3_u8)]);
-        assert_eq!(evaluation, Fq::from(8_u8));
+        let evaluation = polynomial.evaluation(&vec![Fq::from(2), Fq::from(3)]);
+        assert_eq!(evaluation, Fq::from(25));
         println!("{}", Fq::summary());
     }
 

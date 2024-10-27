@@ -185,11 +185,14 @@ pub fn fft(coefficients: &Vec<Complex64>, inverse: bool) -> Vec<Complex64> {
     let mut w_i = Complex64::new(1.0, 0.0);
 
     for i in 0..half_len {
-        y[i] = y_e[i] + (w_i * y_o[i]);
-        y[i + half_len] = y_e[i] - (w_i * y_o[i]);
         if inverse {
+            y[i] = y_e[i] + (w_i * y_o[i]);
+            y[i + half_len] = y_e[i] - (w_i * y_o[i]);
             y[i] /= 2.0;
-            y[i + length_of_coefficients / 2] /= 2.0;
+            y[i + half_len] /= 2.0;
+        } else {
+            y[i] = y_e[i] + (w_i * y_o[i]);
+            y[i + half_len] = y_e[i] - (w_i * y_o[i]);
         }
 
         w_i *= ω;
@@ -278,9 +281,10 @@ mod tests {
     use field_tracker::Ft;
 
     use super::*;
-    use crate::Fq as Fq_old;
+    
+    use ark_test_curves::bls12_381::Fr as Fq_old;
 
-    type Fq = Ft<1, Fq_old>;
+    type Fq = Ft<4, Fq_old>;
 
     #[test]
     fn test_boolean_hypercube() {

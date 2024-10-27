@@ -223,11 +223,10 @@ impl<F: PrimeField> Display for SparseUnivariatePolynomial<F> {
 
 mod tests {
     use field_tracker::Ft;
-
     use super::*;
-    use crate::Fq as Fq_old;
+    use ark_test_curves::bls12_381::Fr as Fq_old;
 
-    type Fq = Ft<1, Fq_old>;
+    type Fq = Ft<4, Fq_old>;
 
     #[test]
     fn test_polynomial_evaluation() {
@@ -243,7 +242,7 @@ mod tests {
         let polynomial = SparseUnivariatePolynomial::new(data);
         let evaluation = polynomial.evaluate(Fq::from(2_u8));
 
-        assert_eq!(evaluation, Fq::from(10_u8));
+        assert_eq!(evaluation, Fq::from(265));
         println!("{}", Fq::summary());
     }
 
@@ -309,22 +308,17 @@ mod tests {
         let polynomial2 = SparseUnivariatePolynomial::new(data2);
 
         assert_eq!(
-            polynomial1 + polynomial2,
-            SparseUnivariatePolynomial::new(vec![
-                Fq::from(5_u8),
-                Fq::from(0_u8),
-                Fq::from(2_u8),
-                Fq::from(1_u8),
-            ])
+            polynomial1 * polynomial2,
+            SparseUnivariatePolynomial::new(vec![Fq::from(10), Fq::from(1),])
         );
 
         let data3 = vec![
-            Fq::from(5_u8),
-            Fq::from(0_u8),
-            Fq::from(2_u8),
-            Fq::from(1_u8),
-            Fq::from(4_u8),
-            Fq::from(6_u8),
+            Fq::from(5),
+            Fq::from(0),
+            Fq::from(2),
+            Fq::from(1),
+            Fq::from(4),
+            Fq::from(6),
         ];
         let data4 = vec![
             Fq::from(4),
@@ -338,26 +332,26 @@ mod tests {
         let polynomial3 = SparseUnivariatePolynomial::new(data3);
         let polynomial4 = SparseUnivariatePolynomial::new(data4);
 
-        // 3 + 15x^2 + 3x^5 + 8x + 6x^3 + 7x^6 + 12x^8 + 16x^11
+        // 20 + 15x^2 + 20x^5 + 8x + 6x^3 + 24x^6 + 12x^8 + 16x^11
         assert_eq!(
             polynomial3 * polynomial4,
             SparseUnivariatePolynomial::new(vec![
-                Fq::from(3_u8),
-                Fq::from(0_u8),
-                Fq::from(15_u8),
-                Fq::from(2_u8),
-                Fq::from(3_u8),
-                Fq::from(5_u8),
-                Fq::from(8_u8),
-                Fq::from(1_u8),
-                Fq::from(6_u8),
-                Fq::from(3_u8),
-                Fq::from(7_u8),
-                Fq::from(6_u8),
-                Fq::from(12_u8),
-                Fq::from(8_u8),
-                Fq::from(16_u8),
-                Fq::from(11_u8),
+                Fq::from(20),
+                Fq::from(0),
+                Fq::from(15),
+                Fq::from(2),
+                Fq::from(20),
+                Fq::from(5),
+                Fq::from(8),
+                Fq::from(1),
+                Fq::from(6),
+                Fq::from(3),
+                Fq::from(24),
+                Fq::from(6),
+                Fq::from(12),
+                Fq::from(8),
+                Fq::from(16),
+                Fq::from(11),
             ])
         );
         println!("{}", Fq::summary());
@@ -374,12 +368,12 @@ mod tests {
         ]);
 
         let interpolation_check = SparseUnivariatePolynomial::new(vec![
-            Fq::from(3_u8),
-            Fq::from(0_u8),
-            Fq::from(15_u8),
-            Fq::from(1_u8),
-            Fq::from(1_u8),
-            Fq::from(2_u8),
+            Fq::from(3),
+            Fq::from(0),
+            Fq::from(-2),
+            Fq::from(1),
+            Fq::from(1),
+            Fq::from(2),
         ]);
         assert_eq!(interpolation, interpolation_check);
 

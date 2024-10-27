@@ -12,11 +12,11 @@ pub use univariate::{
     sparse_univariate::{SparseUnivariatePolynomial, UnivariateMonomial},
 };
 
-use ark_ff::MontConfig;
-use ark_ff::{Fp64, MontBackend};
+// use ark_ff::MontConfig;
+// use ark_ff::{Fp64, MontBackend};
 
-#[derive(MontConfig)]
-#[modulus = "17"]
-#[generator = "3"]
-pub struct FqConfig;
-pub type Fq = Fp64<MontBackend<FqConfig, 1>>;
+// #[derive(MontConfig)]
+// #[modulus = "4611686018427387847"]
+// #[generator = "7"]
+// pub struct FqConfig;
+// pub type Fq = Fp64<MontBackend<FqConfig, 1>>;
