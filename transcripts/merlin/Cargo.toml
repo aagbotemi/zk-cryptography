@@ -1,0 +1,9 @@
+[package]
+name = "merlin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ark-ff.workspace = true
+sha2.workspace = true
+ark-test-curves.workspace = true
