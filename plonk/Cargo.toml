@@ -4,11 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ark-ff = "0.4.2"
-ark-ec = "0.4.2"
-rand = "0.8.5"
-polynomial = { path = "../polynomial" }
-kzg = { path = "../kzg" }
-blake2 = "0.10.6"
-bls12_381 = "0.8.0"
-ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
+ark-ff.workspace = true
+merlin.workspace = true
+polynomial.workspace = true
+ark-ec.workspace = true
+rand.workspace = true
+kzg.workspace = true
+ark-test-curves.workspace = true

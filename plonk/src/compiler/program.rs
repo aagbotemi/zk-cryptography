@@ -1,41 +1,10 @@
-use std::collections::HashMap;
-
-use ark_ff::PrimeField;
-use polynomial::DenseUnivariatePolynomial;
-
 use super::{
-    assembly::{AssemblyEqn, GateWire},
-    domain::Domain,
+    primitives::{AssemblyEqn, CommonPreprocessedInput, GateWire, Program, Witness},
     utils::{roots_of_unity, Cell, Column},
 };
-
-pub struct CommonPreprocessedInput<F: PrimeField> {
-    pub group_order: u64,
-    pub q_l: UnivariateEval<F>,
-    // pub q_l: DenseUnivariatePolynomial<F>,
-    pub q_r: UnivariateEval<F>,
-    // pub q_r: DenseUnivariatePolynomial<F>,
-    pub q_m: UnivariateEval<F>,
-    // pub q_m: DenseUnivariatePolynomial<F>,
-    pub q_o: UnivariateEval<F>,
-    // pub q_o: DenseUnivariatePolynomial<F>,
-    pub q_c: UnivariateEval<F>,
-    // pub q_c: DenseUnivariatePolynomial<F>,
-    pub sigma_1: UnivariateEval<F>,
-    // pub sigma_1: DenseUnivariatePolynomial<F>,
-    pub sigma_2: UnivariateEval<F>,
-    // pub sigma_2: DenseUnivariatePolynomial<F>,
-    pub sigma_3: UnivariateEval<F>,
-    // pub sigma_3: DenseUnivariatePolynomial<F>,
-    pub s1_coeff: Option<DenseUnivariatePolynomial<F>>,
-    pub s2_coeff: Option<DenseUnivariatePolynomial<F>>,
-}
-
-#[derive(Clone)]
-pub struct Program<F: PrimeField> {
-    pub constraints: Vec<AssemblyEqn<F>>,
-    pub group_order: u64,
-}
+use ark_ff::PrimeField;
+use polynomial::univariate::evaluation::{Domain, UnivariateEval};
+use std::collections::HashMap;
 
 impl<F: PrimeField> Program<F> {
     pub fn new(constraints: Vec<AssemblyEqn<F>>, group_order: u64) -> Program<F> {
@@ -124,7 +93,7 @@ impl<F: PrimeField> Program<F> {
                 .map(|element| element)
                 .collect(),
         );
-        dbg!("HERE");
+
         s.insert(
             Column::RIGHT,
             roots_of_unity(self.group_order)
@@ -203,27 +172,62 @@ impl<F: PrimeField> Program<F> {
         }
         out
     }
-}
 
-#[derive(Debug, Clone)]
-pub struct UnivariateEval<F: PrimeField> {
-    /// this is a list of the evaluation of the polynomial
-    pub values: Vec<F>,
-    /// This is the domian of the polynomal; very important for the FFT and IFFT
-    pub domain: Domain<F>,
-}
+    pub fn make_witness(&self, witness: HashMap<String, F>) -> Witness<F> {
+        let mut a_values = vec![F::from(0u8); self.group_order as usize];
+        let mut b_values = vec![F::from(0u8); self.group_order as usize];
+        let mut c_values = vec![F::from(0u8); self.group_order as usize];
 
-impl<F: PrimeField> UnivariateEval<F> {
-    /// This function is used to create a new polynomial from the evaluation form
-    pub fn new(values: Vec<F>, domain: Domain<F>) -> Self {
-        UnivariateEval { values, domain }
+        let public_variables: Vec<_> = self
+            .get_public_assignment()
+            .iter()
+            .map(|x| x.clone().unwrap())
+            .collect();
+
+        let mut values: Vec<_> = public_variables
+            .iter()
+            .map(|x| witness.get(x).unwrap().neg())
+            .collect();
+
+        values.resize(
+            self.group_order as usize - public_variables.len(),
+            F::zero(),
+        );
+
+        for (i, constraint) in self.constraints.iter().enumerate() {
+            let l = constraint.wires.left_wire.clone();
+            a_values[i] = match l {
+                Some(v) => *witness.get(&v).unwrap(),
+                None => F::zero(),
+            };
+
+            let r = constraint.wires.right_wire.clone();
+            b_values[i] = match r {
+                Some(v) => *witness.get(&v).unwrap(),
+                None => F::zero(),
+            };
+
+            let o = constraint.wires.output_wire.clone();
+            c_values[i] = match o {
+                Some(v) => *witness.get(&v).unwrap(),
+                None => F::zero(),
+            };
+        }
+
+        Witness {
+            a: UnivariateEval::new(a_values, Domain::new(self.group_order as usize)),
+            b: UnivariateEval::new(b_values, Domain::new(self.group_order as usize)),
+            c: UnivariateEval::new(c_values, Domain::new(self.group_order as usize)),
+            public_poly: UnivariateEval::new(values, Domain::new(self.group_order as usize)),
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::compiler::{assembly::AssemblyEqn, utils::roots_of_unity};
     use ark_test_curves::bls12_381::Fr;
+
+    use crate::compiler::{primitives::AssemblyEqn, utils::roots_of_unity};
 
     use super::Program;
 
@@ -243,10 +247,10 @@ mod test {
             assembly_eqns.push(assembly_eqn);
         }
         let program = Program::new(assembly_eqns, 8);
-        let (s1, s2, s3) = program.make_s_polynomials();
+        let (s1, s2, _) = program.make_s_polynomials();
 
         let unmoved_s1: Vec<_> = roots_of_unity(8);
-        let unmoved_s2: Vec<_> = roots_of_unity(8)
+        let _: Vec<_> = roots_of_unity(8)
             .into_iter()
             .map(|ele: Fr| ele * Fr::from(2))
             .collect();

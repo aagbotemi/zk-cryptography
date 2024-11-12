@@ -34,11 +34,11 @@ impl<P: Pairing> UnivariateKZGInterface<P> for UnivariateKZG<P> {
         }
     }
 
-    fn commitment(
-        poly: &DenseUnivariatePolynomial<P::ScalarField>,
+    fn commitment<F: PrimeField>(
+        poly: &DenseUnivariatePolynomial<F>,
         srs: &TrustedSetup<P>,
     ) -> P::G1 {
-        let coefficients: Vec<P::ScalarField> = poly.coefficients.clone();
+        let coefficients: Vec<F> = poly.coefficients.clone();
 
         assert_eq!(
             srs.powers_of_tau_in_g1.len(),

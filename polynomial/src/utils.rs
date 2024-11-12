@@ -253,15 +253,9 @@ pub fn compute_number_of_variables(n: u128) -> (u128, u128) {
     (log_base_2 as u128, n_power_2)
 }
 
-pub fn generate_random<F: PrimeField>(n: usize) -> Vec<F> {
-    let mut result = Vec::with_capacity(n);
+pub fn generate_random_numbers<F: PrimeField>(n: usize) -> Vec<F> {
     let mut rng = thread_rng();
-
-    for _ in 0..n {
-        result.push(F::rand(&mut rng));
-    }
-
-    result
+    (0..n).map(|_| F::rand(&mut rng)).collect::<Vec<F>>()
 }
 
 pub fn remove_trailing_and_redundant_zeros<F: PrimeField>(coeff: &Vec<F>) -> Vec<F> {
@@ -281,7 +275,7 @@ mod tests {
     use field_tracker::Ft;
 
     use super::*;
-    
+
     use ark_test_curves::bls12_381::Fr as Fq_old;
 
     type Fq = Ft<4, Fq_old>;

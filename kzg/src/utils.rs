@@ -68,7 +68,7 @@ mod tests {
     use super::{check_for_zero_and_one, get_poly_quotient, get_poly_remainder};
 
     type Fr = Ft<4, Fr_old>;
-    
+
     #[test]
     fn test_check_for_zero_and_one() {
         let bh_1 = vec![Fr::from(0), Fr::from(0), Fr::from(0)];

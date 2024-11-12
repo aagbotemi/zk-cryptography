@@ -1,6 +1,9 @@
 use ark_test_curves::bls12_381::{Bls12_381, Fr};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use kzg::{interface::UnivariateKZGInterface, univariate_kzg::{UnivariateKZG, UnivariateKZGProof}};
+use kzg::{
+    interface::UnivariateKZGInterface,
+    univariate_kzg::{UnivariateKZG, UnivariateKZGProof},
+};
 use polynomial::{DenseUnivariatePolynomial, UnivariatePolynomialTrait};
 
 fn univariate_kzg_benchmark(c: &mut Criterion) {

@@ -124,9 +124,9 @@ mod tests {
     use field_tracker::Ft;
 
     use super::*;
-    use crate::interface::MultilinearTrait;    
-    use ark_test_curves::bls12_381::Fr as Fq_old;
+    use crate::interface::MultilinearTrait;
     use crate::Multilinear;
+    use ark_test_curves::bls12_381::Fr as Fq_old;
 
     type Fq = Ft<4, Fq_old>;
 

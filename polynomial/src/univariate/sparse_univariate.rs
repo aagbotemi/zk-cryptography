@@ -222,9 +222,9 @@ impl<F: PrimeField> Display for SparseUnivariatePolynomial<F> {
 }
 
 mod tests {
-    use field_tracker::Ft;
     use super::*;
     use ark_test_curves::bls12_381::Fr as Fq_old;
+    use field_tracker::Ft;
 
     type Fq = Ft<4, Fq_old>;
 

@@ -183,8 +183,6 @@ impl MultiComposedSumcheckVerifier {
 
 #[cfg(test)]
 mod tests {
-    use crate::sumcheck;
-
     use super::*;
     use ark_test_curves::bls12_381::Fr as Fr_old;
     use field_tracker::Ft;

@@ -1,14 +1,10 @@
 use ark_ff::PrimeField;
 use std::collections::HashMap;
 
-use super::utils::{evaluate, get_product_key, is_valid_variable_name, merge_maps, multiply_maps};
-
-#[derive(Debug, Clone)]
-pub struct GateWire {
-    pub left_wire: Option<String>,
-    pub right_wire: Option<String>,
-    pub output_wire: Option<String>,
-}
+use super::{
+    primitives::{AssemblyEqn, Gate, GateWire},
+    utils::{evaluate, get_product_key, is_valid_variable_name},
+};
 
 impl GateWire {
     pub fn to_vec(&self) -> Vec<Option<String>> {
@@ -18,21 +14,6 @@ impl GateWire {
             self.output_wire.clone(),
         ]
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct Gate<F: PrimeField> {
-    pub l: F,
-    pub r: F,
-    pub m: F,
-    pub o: F,
-    pub c: F,
-}
-
-#[derive(Debug, Clone)]
-pub struct AssemblyEqn<F: PrimeField> {
-    pub wires: GateWire,
-    pub coeffs: HashMap<Option<String>, F>,
 }
 
 impl<F: PrimeField> AssemblyEqn<F> {

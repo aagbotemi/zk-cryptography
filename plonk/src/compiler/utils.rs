@@ -40,7 +40,6 @@ pub fn root_of_unity<F: PrimeField>(group_order: u64) -> F {
 }
 
 pub fn roots_of_unity<F: PrimeField>(group_order: u64) -> Vec<F> {
-    // let mut res = Vec::with_capacity(group_order as usize);
     let mut res = vec![F::from(1u32)];
     let generator: F = root_of_unity(group_order);
     for _ in 1..group_order {

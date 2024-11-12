@@ -1,4 +1,5 @@
 use ark_ff::PrimeField;
+use ark_test_curves::pairing::Pairing;
 use sha2::{Digest, Sha256};
 
 #[derive(Debug)]
@@ -31,6 +32,12 @@ impl MerlinTranscript {
         scalar.serialize_compressed(&mut self.buffer).unwrap();
         let message = self.buffer.clone();
         self.append_message(label, &message);
+    }
+
+    pub fn append_point<P: Pairing>(&mut self, label: &[u8], point: &P::G1) {
+        let stringed_message = point.to_string();
+        let message = stringed_message.as_bytes();
+        self.append_message(label, message);
     }
 
     pub fn challenge<F: PrimeField>(&mut self, label: &[u8]) -> F {

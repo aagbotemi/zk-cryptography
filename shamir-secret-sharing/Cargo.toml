@@ -8,8 +8,8 @@ description = "This is a utils library for working with the Shamir Secret Sharin
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-polynomial = { path = "../polynomial" }
-ark-ff = "0.4.2"
-rand = "0.8.5"
-ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
-field-tracker = {git = "https://github.com/sublinearlabs/field-tracker", branch = "main"}
+polynomial.workspace = true
+ark-ff.workspace = true
+rand.workspace = true
+ark-test-curves.workspace = true
+field-tracker.workspace = true

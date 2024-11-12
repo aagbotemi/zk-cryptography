@@ -234,6 +234,23 @@ impl<F: PrimeField> Mul for DenseUnivariatePolynomial<F> {
     }
 }
 
+impl<F: PrimeField> Mul<F> for DenseUnivariatePolynomial<F> {
+    type Output = Self;
+
+    fn mul(self, other: F) -> Self {
+        if self.is_zero() || other.is_zero() {
+            return DenseUnivariatePolynomial::new(vec![]);
+        }
+
+        let mut coefficients = self.coefficients.clone();
+        for coeff in coefficients.iter_mut() {
+            *coeff *= other;
+        }
+
+        DenseUnivariatePolynomial { coefficients }
+    }
+}
+
 impl<F: PrimeField> Add for DenseUnivariatePolynomial<F> {
     type Output = Self;
 
@@ -259,6 +276,22 @@ impl<F: PrimeField> Add for DenseUnivariatePolynomial<F> {
         };
 
         result
+    }
+}
+
+impl<F: PrimeField> Add<F> for DenseUnivariatePolynomial<F> {
+    type Output = Self;
+
+    fn add(self, other: F) -> Self {
+        // check for zero polynomials
+        if self.is_zero() {
+            return DenseUnivariatePolynomial::new(vec![other]);
+        }
+
+        let mut sum_coefficients = self.coefficients.clone();
+        sum_coefficients[0] += other;
+
+        DenseUnivariatePolynomial::new(sum_coefficients)
     }
 }
 
@@ -384,8 +417,9 @@ impl<F: PrimeField> Display for DenseUnivariatePolynomial<F> {
 }
 
 mod tests {
+    use crate::utils::generate_random_numbers;
+
     use super::*;
-    use crate::utils::generate_random;
     use ark_test_curves::bls12_381::Fr;
 
     #[test]
@@ -626,11 +660,11 @@ mod tests {
         // 4 + 8x + 12x^2 + 5x + 10x^2 + 15x^3 + 6x^2 + 12x^3 + 18x^4
         // 4 + 13x + 28x^2 + 27x^3 + 18x^4
         // [4, 13, 28, 27, 18]
-        let tt: Vec<Fr> = generate_random(7);
+        let tt: Vec<Fr> = generate_random_numbers(7);
         let poly_a: DenseUnivariatePolynomial<Fr> = DenseUnivariatePolynomial::new(tt);
         println!("poly_a={:?}", poly_a);
         let poly_b: DenseUnivariatePolynomial<Fr> =
-            DenseUnivariatePolynomial::new(generate_random(10));
+            DenseUnivariatePolynomial::new(generate_random_numbers(10));
         println!("poly_b={:?}", poly_b);
         let result = DenseUnivariatePolynomial::fft_mult_poly(&poly_a, &poly_b);
         println!("result={:?}", result);
