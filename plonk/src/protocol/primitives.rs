@@ -6,7 +6,7 @@ use merlin::MerlinTranscript;
 use polynomial::DenseUnivariatePolynomial;
 use std::marker::PhantomData;
 
-pub struct Prover<F: PrimeField, P: Pairing> {
+pub struct PlonkProver<F: PrimeField, P: Pairing> {
     pub preprocessed_input: CommonPreprocessedInput<F>,
     pub srs: TrustedSetup<P>,
     pub transcript: PlonkRoundTranscript<P>,
@@ -45,7 +45,7 @@ pub struct WitnessPolys<F: PrimeField> {
     pub w_zeta_omega_poly: DenseUnivariatePolynomial<F>,
 }
 
-pub struct Proof<P: Pairing, F: PrimeField> {
+pub struct PlonkProof<P: Pairing, F: PrimeField> {
     pub a_s: P::G1,
     pub b_s: P::G1,
     pub c_s: P::G1,
@@ -66,4 +66,43 @@ pub struct Proof<P: Pairing, F: PrimeField> {
 pub struct PlonkRoundTranscript<P: Pairing> {
     pub transcript: MerlinTranscript,
     pub _marker: PhantomData<P>,
+}
+
+impl<F: PrimeField> Default for RandomNumbers<F> {
+    fn default() -> Self {
+        Self {
+            alpha: F::ZERO,
+            beta: F::ZERO,
+            gamma: F::ZERO,
+            zeta: F::ZERO,
+            nu: F::ZERO,
+            mu: F::ZERO,
+        }
+    }
+}
+
+impl<F: PrimeField> Default for WitnessPolys<F> {
+    fn default() -> Self {
+        Self {
+            a_s: DenseUnivariatePolynomial::zero(),
+            b_s: DenseUnivariatePolynomial::zero(),
+            c_s: DenseUnivariatePolynomial::zero(),
+            zh_poly: DenseUnivariatePolynomial::zero(),
+
+            zh_accumulator_poly: DenseUnivariatePolynomial::zero(),
+            t_low_poly: DenseUnivariatePolynomial::zero(),
+            t_mid_poly: DenseUnivariatePolynomial::zero(),
+            t_high_poly: DenseUnivariatePolynomial::zero(),
+
+            a_s_poly_zeta: F::ZERO,
+            b_s_poly_zeta: F::ZERO,
+            c_s_poly_zeta: F::ZERO,
+            w_accumulator_poly_zeta: F::ZERO,
+            sigma1_poly_zeta: F::ZERO,
+            sigma2_poly_zeta: F::ZERO,
+
+            w_zeta_poly: DenseUnivariatePolynomial::zero(),
+            w_zeta_omega_poly: DenseUnivariatePolynomial::zero(),
+        }
+    }
 }

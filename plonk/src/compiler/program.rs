@@ -173,7 +173,7 @@ impl<F: PrimeField> Program<F> {
         out
     }
 
-    pub fn make_witness(&self, witness: HashMap<String, F>) -> Witness<F> {
+    pub fn compute_witness(&self, witness: HashMap<Option<String>, F>) -> Witness<F> {
         let mut a_values = vec![F::from(0u8); self.group_order as usize];
         let mut b_values = vec![F::from(0u8); self.group_order as usize];
         let mut c_values = vec![F::from(0u8); self.group_order as usize];
@@ -186,7 +186,7 @@ impl<F: PrimeField> Program<F> {
 
         let mut values: Vec<_> = public_variables
             .iter()
-            .map(|x| witness.get(x).unwrap().neg())
+            .map(|x| witness.get(&Some(x.to_string())).unwrap().neg())
             .collect();
 
         values.resize(
@@ -197,19 +197,19 @@ impl<F: PrimeField> Program<F> {
         for (i, constraint) in self.constraints.iter().enumerate() {
             let l = constraint.wires.left_wire.clone();
             a_values[i] = match l {
-                Some(v) => *witness.get(&v).unwrap(),
+                Some(v) => *witness.get(&Some(v)).unwrap(),
                 None => F::zero(),
             };
 
             let r = constraint.wires.right_wire.clone();
             b_values[i] = match r {
-                Some(v) => *witness.get(&v).unwrap(),
+                Some(v) => *witness.get(&Some(v)).unwrap(),
                 None => F::zero(),
             };
 
             let o = constraint.wires.output_wire.clone();
             c_values[i] = match o {
-                Some(v) => *witness.get(&v).unwrap(),
+                Some(v) => *witness.get(&Some(v)).unwrap(),
                 None => F::zero(),
             };
         }

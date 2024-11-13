@@ -12,39 +12,36 @@ use polynomial::{
 };
 
 use super::{
-    primitives::{PlonkRoundTranscript, Proof, Prover, RandomNumbers, WitnessPolys},
+    primitives::{PlonkProof, PlonkProver, PlonkRoundTranscript, RandomNumbers, WitnessPolys},
     utils::{apply_w_to_polynomial, split_poly_in_3, zh_values},
 };
 
-impl<F: PrimeField, P: Pairing> Prover<F, P> {
+impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
     pub fn new(
         preprocessed_input: CommonPreprocessedInput<F>,
         srs: TrustedSetup<P>,
         transcript: PlonkRoundTranscript<P>,
-        random_number: RandomNumbers<F>,
-        witness_polys: WitnessPolys<F>,
     ) -> Self {
-        Prover {
+        PlonkProver {
             preprocessed_input,
             srs,
             transcript,
-            random_number,
-            witness_polys,
+            random_number: RandomNumbers::default(),
+            witness_polys: WitnessPolys::default(),
         }
     }
 
-    pub fn prove(&mut self, witness: Witness<F>) -> Proof<P, F> {
+    pub fn prove(&mut self, witness: &Witness<F>) -> PlonkProof<P, F> {
         // round 1
         let (a_s, b_s, c_s) = self.first_round(&witness);
         self.transcript.first_round(a_s, b_s, c_s);
 
         // round 2
         let accumulator_commitment = self.second_round(&witness);
-        let zh_accumulator_poly = self.witness_polys.zh_accumulator_poly.clone();
-        self.transcript
-            .second_round::<F>(zh_accumulator_poly.clone(), accumulator_commitment);
+        self.transcript.second_round::<F>(accumulator_commitment);
 
         // round 3
+        let zh_accumulator_poly = self.witness_polys.zh_accumulator_poly.clone();
         let (t_low, t_mid, t_high) = self.third_round(&witness, &zh_accumulator_poly);
         self.transcript.third_round(t_low, t_mid, t_high);
 
@@ -74,7 +71,7 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         let mu: F = self.transcript.challenge_round(b"mu");
         self.random_number.mu = mu;
 
-        Proof {
+        PlonkProof {
             a_s,
             b_s,
             c_s,
