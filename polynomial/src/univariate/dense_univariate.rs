@@ -210,27 +210,25 @@ impl<F: PrimeField> UnivariatePolynomialTrait<F> for DenseUnivariatePolynomial<F
 impl<F: PrimeField> Mul for DenseUnivariatePolynomial<F> {
     type Output = Self;
 
-    fn mul(self, rhs: Self) -> Self {
-        // (3x^2 + 5x + 6)(2x^2 + 4x + 5)
-        // (6x^4 + 12x^3 + 15x^2 + 10x^3 + 20x^2 + 25x + 12x^2 + 24x + 30)
-        // (6x^4 + 22x^3 + 47x^2  + 49x + 30)
-
-        if self.is_zero() || rhs.is_zero() {
+    fn mul(self, other: Self) -> Self {
+        // check for zero polynomials
+        if self.is_zero() || other.is_zero() {
             return DenseUnivariatePolynomial::new(vec![]);
         }
 
-        let degree = self.degree() + rhs.degree();
-        let mut result = vec![F::zero(); degree + 1];
+        // Create a new polynomial with the degree of the two polynomials
+        let poly_product_degree = self.degree() + other.degree();
+
+        // during poly mul we would need d + 1 element to represent a polynomial of degree d
+        let mut poly_product_coefficients = vec![F::zero(); poly_product_degree + 1];
 
         for i in 0..=self.degree() {
-            for j in 0..=rhs.degree() {
-                result[i + j] += self.coefficients[i] * rhs.coefficients[j];
+            for j in 0..=other.degree() {
+                poly_product_coefficients[i + j] += self.coefficients[i] * other.coefficients[j];
             }
         }
 
-        DenseUnivariatePolynomial {
-            coefficients: result,
-        }
+        DenseUnivariatePolynomial::new(poly_product_coefficients)
     }
 }
 
@@ -238,16 +236,17 @@ impl<F: PrimeField> Mul<F> for DenseUnivariatePolynomial<F> {
     type Output = Self;
 
     fn mul(self, other: F) -> Self {
+        // check for zero polynomials
         if self.is_zero() || other.is_zero() {
             return DenseUnivariatePolynomial::new(vec![]);
         }
 
-        let mut coefficients = self.coefficients.clone();
-        for coeff in coefficients.iter_mut() {
+        let mut poly_product_coefficients = self.coefficients.clone();
+        for coeff in poly_product_coefficients.iter_mut() {
             *coeff *= other;
         }
 
-        DenseUnivariatePolynomial { coefficients }
+        DenseUnivariatePolynomial::new(poly_product_coefficients)
     }
 }
 
@@ -263,7 +262,7 @@ impl<F: PrimeField> Add for DenseUnivariatePolynomial<F> {
                     .push(self.coefficients[i] + other.coefficients.get(i).unwrap_or(&F::zero()));
             }
 
-            DenseUnivariatePolynomial::new(result_coff)
+            DenseUnivariatePolynomial::from_coefficients_vec(result_coff)
         } else {
             let mut result_coff = Vec::new();
 
@@ -272,7 +271,7 @@ impl<F: PrimeField> Add for DenseUnivariatePolynomial<F> {
                     .push(other.coefficients[i] + self.coefficients.get(i).unwrap_or(&F::zero()));
             }
 
-            DenseUnivariatePolynomial::new(result_coff)
+            DenseUnivariatePolynomial::from_coefficients_vec(result_coff)
         };
 
         result
@@ -498,6 +497,18 @@ mod tests {
     }
 
     #[test]
+    fn test_dense_polynomial_multiplication_scalar() {
+        let poly1 = DenseUnivariatePolynomial::new(vec![Fr::from(1), Fr::from(3), Fr::from(2)]);
+        let poly2 = DenseUnivariatePolynomial::new(vec![Fr::from(3)]);
+
+        let poly3 = poly1.clone() * poly2.clone();
+        assert_eq!(
+            poly3.coefficients,
+            vec![Fr::from(3), Fr::from(9), Fr::from(6)]
+        );
+    }
+
+    #[test]
     // #[ignore = "reason"]
     fn test_dense_polynomial_interpolation_1() {
         let point_ys_1 = vec![Fr::from(0), Fr::from(4), Fr::from(16)];
@@ -542,7 +553,7 @@ mod tests {
 
         let poly = DenseUnivariatePolynomial::interpolate(point_ys_2, point_xs_2);
         let eval = poly.evaluate(Fr::from(3));
-        println!("{:?}", eval);
+        // println!("{:?}", eval);
         assert_eq!(
             poly,
             DenseUnivariatePolynomial::new(vec![
@@ -662,12 +673,12 @@ mod tests {
         // [4, 13, 28, 27, 18]
         let tt: Vec<Fr> = generate_random_numbers(7);
         let poly_a: DenseUnivariatePolynomial<Fr> = DenseUnivariatePolynomial::new(tt);
-        println!("poly_a={:?}", poly_a);
+        // println!("poly_a={:?}", poly_a);
         let poly_b: DenseUnivariatePolynomial<Fr> =
             DenseUnivariatePolynomial::new(generate_random_numbers(10));
-        println!("poly_b={:?}", poly_b);
+        // println!("poly_b={:?}", poly_b);
         let result = DenseUnivariatePolynomial::fft_mult_poly(&poly_a, &poly_b);
-        println!("result={:?}", result);
+        // println!("result={:?}", result);
         // let expected_result = DenseUnivariatePolynomial::new(vec![
         //     Fr::from(4),
         //     Fr::from(13),

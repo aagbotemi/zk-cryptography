@@ -79,9 +79,9 @@ impl<F: PrimeField> AssemblyEqn<F> {
     pub fn eq_to_assembly(eq: &str) -> AssemblyEqn<F> {
         let tokens: Vec<&str> = eq.trim().split(" ").collect();
         if tokens[1] == "<==" || tokens[1] == "===" {
-            // output variable
+            // First token is the output variable
             let mut out = tokens[0];
-
+            // Convert the expression to coefficient map form
             let mut coeffs = evaluate(&tokens[2..].to_vec());
             // Handle the "-x === a * b" case
             if out.chars().nth(0).unwrap() == '-' {
@@ -100,20 +100,13 @@ impl<F: PrimeField> AssemblyEqn<F> {
                     variables.push(var);
                 }
             }
+            // Construct the list of allowed coefficients
             let mut allowed_coeffs: Vec<String> =
                 variables.iter().map(|&s| s.to_string()).collect();
             allowed_coeffs.extend(vec!["".to_string(), "$output_coeff".to_string()]);
 
             if variables.is_empty() {
-                // return AssemblyEqn {
-                //     wires: GateWire {
-                //         left_wire: Default::default(),
-                //         right_wire: Default::default(),
-                //         output_wire: Default::default(),
-                //     },
-                //     coeffs: Default::default(),
-                // };
-                todo!()
+                todo!();
             } else if variables.len() == 1 {
                 variables.push(variables[0]);
                 let product_key =
@@ -131,8 +124,10 @@ impl<F: PrimeField> AssemblyEqn<F> {
 
             // Check that only allowed coefficients are in the coefficient map
             for key_option in coeffs.keys() {
+                // Use as_ref to convert Option<String> to Option<&String> so that you can safely access the String reference inside it.
                 let key_ref = key_option.as_ref().unwrap();
 
+                // Check if allowed_coeffs contains this reference
                 if !allowed_coeffs.contains(key_ref) {
                     panic!("Disallowed multiplication");
                 }

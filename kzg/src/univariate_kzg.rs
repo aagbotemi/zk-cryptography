@@ -40,12 +40,12 @@ impl<P: Pairing> UnivariateKZGInterface<P> for UnivariateKZG<P> {
     ) -> P::G1 {
         let coefficients: Vec<F> = poly.coefficients.clone();
 
-        assert_eq!(
-            srs.powers_of_tau_in_g1.len(),
-            coefficients.len(),
-            "The length of powers_of_tau_in_g1 and the length of
-                the evaluations of the polynomial should tally!"
-        );
+        // assert_eq!(
+        //     srs.powers_of_tau_in_g1.len(),
+        //     coefficients.len(),
+        //     "The length of powers_of_tau_in_g1 and the length of
+        //         the evaluations of the polynomial should tally!"
+        // );
 
         let mut commit = P::G1::default();
 

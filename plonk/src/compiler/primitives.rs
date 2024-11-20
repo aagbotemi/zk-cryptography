@@ -1,30 +1,21 @@
 use ark_ff::PrimeField;
-use polynomial::{univariate::evaluation::UnivariateEval, DenseUnivariatePolynomial};
+use polynomial::univariate::evaluation::UnivariateEval;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct CommonPreprocessedInput<F: PrimeField> {
     pub group_order: u64,
     pub q_l: UnivariateEval<F>,
-    // pub q_l: DenseUnivariatePolynomial<F>,
     pub q_r: UnivariateEval<F>,
-    // pub q_r: DenseUnivariatePolynomial<F>,
     pub q_m: UnivariateEval<F>,
-    // pub q_m: DenseUnivariatePolynomial<F>,
     pub q_o: UnivariateEval<F>,
-    // pub q_o: DenseUnivariatePolynomial<F>,
     pub q_c: UnivariateEval<F>,
-    // pub q_c: DenseUnivariatePolynomial<F>,
     pub sigma_1: UnivariateEval<F>,
-    // pub sigma_1: DenseUnivariatePolynomial<F>,
     pub sigma_2: UnivariateEval<F>,
-    // pub sigma_2: DenseUnivariatePolynomial<F>,
     pub sigma_3: UnivariateEval<F>,
-    // pub sigma_3: DenseUnivariatePolynomial<F>,
-    pub s1_coeff: Option<DenseUnivariatePolynomial<F>>,
-    pub s2_coeff: Option<DenseUnivariatePolynomial<F>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Program<F: PrimeField> {
     pub constraints: Vec<AssemblyEqn<F>>,
     pub group_order: u64,

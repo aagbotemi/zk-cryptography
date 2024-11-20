@@ -243,7 +243,7 @@ mod tests {
         let evaluation = polynomial.evaluate(Fq::from(2_u8));
 
         assert_eq!(evaluation, Fq::from(265));
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -295,7 +295,7 @@ mod tests {
                 Fq::from(2_u8),
             ])
         );
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -354,7 +354,7 @@ mod tests {
                 Fq::from(11),
             ])
         );
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -380,7 +380,7 @@ mod tests {
         // to test the evaluation of the polynomial
         let evaluation = interpolation.evaluate(Fq::from(2_u8));
         assert_eq!(evaluation, Fq::from(3_u8));
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -444,7 +444,7 @@ mod tests {
         );
         let evaluation5 = interpolation5.evaluate(Fq::from(2_u8));
         assert_eq!(evaluation5, Fq::from(11_u8));
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -455,6 +455,6 @@ mod tests {
         let degree = polynomial.degree();
 
         assert_eq!(degree, 4);
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 }

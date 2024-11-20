@@ -5,7 +5,7 @@ pub mod utils;
 pub fn play_game(n: u32, print: bool) {
     let result = fizz_buzz(n);
     if print {
-        println!("{result}");
+        // println!("{result}");
     }
 }
 

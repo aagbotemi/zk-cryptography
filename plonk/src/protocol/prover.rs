@@ -1,6 +1,9 @@
-use crate::compiler::{
-    primitives::{CommonPreprocessedInput, Witness},
-    utils::{root_of_unity, roots_of_unity},
+use crate::{
+    compiler::{
+        primitives::{CommonPreprocessedInput, Witness},
+        utils::{root_of_unity, roots_of_unity},
+    },
+    protocol::utils::{create_monomial, l1_values},
 };
 use ark_ec::pairing::Pairing;
 use ark_ff::PrimeField;
@@ -8,44 +11,43 @@ use kzg::{
     interface::UnivariateKZGInterface, trusted_setup::TrustedSetup, univariate_kzg::UnivariateKZG,
 };
 use polynomial::{
-    utils::generate_random_numbers, DenseUnivariatePolynomial, UnivariatePolynomialTrait,
+    univariate::{domain::Domain, evaluation::UnivariateEval},
+    utils::generate_random_numbers,
+    DenseUnivariatePolynomial, UnivariatePolynomialTrait,
 };
 
 use super::{
-    primitives::{PlonkRoundTranscript, Proof, Prover, RandomNumbers, WitnessPolys},
+    primitives::{PlonkProof, PlonkProver, PlonkRoundTranscript, RandomNumbers, WitnessPolys},
     utils::{apply_w_to_polynomial, split_poly_in_3, zh_values},
 };
 
-impl<F: PrimeField, P: Pairing> Prover<F, P> {
+impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
     pub fn new(
         preprocessed_input: CommonPreprocessedInput<F>,
         srs: TrustedSetup<P>,
         transcript: PlonkRoundTranscript<P>,
-        random_number: RandomNumbers<F>,
-        witness_polys: WitnessPolys<F>,
     ) -> Self {
-        Prover {
+        PlonkProver {
             preprocessed_input,
             srs,
             transcript,
-            random_number,
-            witness_polys,
+            random_number: RandomNumbers::default(),
+            witness_polys: WitnessPolys::default(),
         }
     }
 
-    pub fn prove(&mut self, witness: Witness<F>) -> Proof<P, F> {
+    pub fn prove(&mut self, witness: &Witness<F>) -> PlonkProof<P, F> {
         // round 1
-        let (a_s, b_s, c_s) = self.first_round(&witness);
-        self.transcript.first_round(a_s, b_s, c_s);
+        let (as_commitment, bs_commitment, cs_commitment) = self.first_round(&witness);
+        self.transcript
+            .first_round(as_commitment, bs_commitment, cs_commitment);
 
         // round 2
         let accumulator_commitment = self.second_round(&witness);
-        let zh_accumulator_poly = self.witness_polys.zh_accumulator_poly.clone();
-        self.transcript
-            .second_round::<F>(zh_accumulator_poly.clone(), accumulator_commitment);
+        self.transcript.second_round::<F>(accumulator_commitment);
 
         // round 3
-        let (t_low, t_mid, t_high) = self.third_round(&witness, &zh_accumulator_poly);
+        let (t_low, t_mid, t_high) = self.third_round(&witness);
         self.transcript.third_round(t_low, t_mid, t_high);
 
         // round 4
@@ -74,10 +76,10 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         let mu: F = self.transcript.challenge_round(b"mu");
         self.random_number.mu = mu;
 
-        Proof {
-            a_s,
-            b_s,
-            c_s,
+        PlonkProof {
+            as_commitment,
+            bs_commitment,
+            cs_commitment,
             accumulator_commitment,
             t_low,
             t_mid,
@@ -94,7 +96,7 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
     }
 
     pub fn first_round(&mut self, witness: &Witness<F>) -> (P::G1, P::G1, P::G1) {
-        let rands = generate_random_numbers(6);
+        let rands: Vec<F> = generate_random_numbers(6);
 
         let zh_poly: DenseUnivariatePolynomial<F> =
             DenseUnivariatePolynomial::new(zh_values(self.preprocessed_input.group_order as usize));
@@ -116,6 +118,7 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         self.witness_polys.a_s = a_s;
         self.witness_polys.b_s = b_s;
         self.witness_polys.c_s = c_s;
+
         (as_commitment, bs_commitment, cs_commitment)
     }
 
@@ -124,28 +127,37 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         let roots_of_unity: Vec<F> = roots_of_unity(group_order as u64);
         let mut accumulator = vec![F::one(); group_order as usize];
 
-        let challenge: Vec<F> = self.transcript.challenge_n_round(b"beta_gamma", 2);
-        let beta = challenge[0];
-        let gamma = challenge[1];
+        let beta = self.transcript.challenge_round(b"beta");
+        let gamma = self.transcript.challenge_round(b"gamma");
 
-        for i in 0..group_order {
-            let acc = accumulator[accumulator.len() - 1]
-                * ((witness.a.values[i] + (beta * roots_of_unity[i]) + gamma)
-                    * (witness.b.values[i] + (beta * F::from(2u8) * roots_of_unity[i]) + gamma)
-                    * (witness.c.values[i] + (beta * F::from(3u8) * roots_of_unity[i]) + gamma))
-                / ((witness.a.values[i]
-                    + (beta + self.preprocessed_input.sigma_1.values[i])
-                    + gamma)
-                    * (witness.b.values[i]
-                        + (beta * self.preprocessed_input.sigma_2.values[i]) * gamma)
-                    * witness.c.values[i]
-                    + (beta * self.preprocessed_input.sigma_3.values[i]) * gamma);
+        for i in 1..group_order {
+            let last_index = i - 1;
+
+            let acc = accumulator[last_index]
+                * (((witness.a.values[last_index] + (beta * roots_of_unity[last_index]) + gamma)
+                    * (witness.b.values[last_index]
+                        + (beta * F::from(2u8) * roots_of_unity[last_index])
+                        + gamma)
+                    * (witness.c.values[last_index]
+                        + (beta * F::from(3u8) * roots_of_unity[last_index])
+                        + gamma))
+                    / ((witness.a.values[last_index]
+                        + (beta * self.preprocessed_input.sigma_1.values[last_index])
+                        + gamma)
+                        * (witness.b.values[last_index]
+                            + (beta * self.preprocessed_input.sigma_2.values[last_index])
+                            + gamma)
+                        * (witness.c.values[last_index]
+                            + (beta * self.preprocessed_input.sigma_3.values[last_index])
+                            + gamma)));
 
             accumulator[i] = acc;
         }
 
-        let rands = generate_random_numbers(3);
-        let accumulator_poly = DenseUnivariatePolynomial::new(accumulator);
+        let rands: Vec<F> = generate_random_numbers(3);
+
+        let domain: Domain<F> = Domain::new(group_order);
+        let accumulator_poly = UnivariateEval::interpolate(accumulator, domain);
         let zh_poly = DenseUnivariatePolynomial::new(zh_values(group_order));
 
         let zh_blinding_factor = DenseUnivariatePolynomial::new(vec![rands[0], rands[1], rands[2]]);
@@ -156,18 +168,13 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
 
         self.random_number.beta = beta;
         self.random_number.gamma = gamma;
-
         self.witness_polys.zh_poly = zh_poly;
-        self.witness_polys.zh_accumulator_poly = zh_blinding_accumulator_poly.clone();
+        self.witness_polys.accumulator_poly = zh_blinding_accumulator_poly.clone();
 
         accumulator_commitment
     }
 
-    pub fn third_round(
-        &mut self,
-        witness: &Witness<F>,
-        zh_accumulator_poly: &DenseUnivariatePolynomial<F>,
-    ) -> (P::G1, P::G1, P::G1) {
+    pub fn third_round(&mut self, witness: &Witness<F>) -> (P::G1, P::G1, P::G1) {
         let group_order = self.preprocessed_input.group_order as usize;
         let root_of_unity: F = root_of_unity(group_order as u64);
         let alpha: F = self.transcript.challenge_round(b"alpha");
@@ -175,14 +182,11 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         let gamma = self.random_number.gamma;
 
         let zh_poly = DenseUnivariatePolynomial::new(zh_values(group_order));
-
-        // l1 poly
-        let mut l1_values = vec![F::zero(); group_order];
-        l1_values[0] = F::one();
-        let l1_poly = DenseUnivariatePolynomial::new(l1_values);
+        let domain = Domain::new(group_order);
+        let l1_poly = UnivariateEval::new(l1_values(group_order), domain);
 
         let w_accumulator_poly =
-            apply_w_to_polynomial(&zh_accumulator_poly.clone(), &root_of_unity);
+            apply_w_to_polynomial(&self.witness_polys.accumulator_poly.clone(), &root_of_unity);
 
         let t_permutation = (((self.witness_polys.a_s.clone()
             * self.witness_polys.b_s.clone()
@@ -196,21 +200,12 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
             + witness.public_poly.to_coefficient_poly()
             + self.preprocessed_input.q_c.to_coefficient_poly())
             / zh_poly.clone())
-            + ((((self.witness_polys.a_s.clone()
-                + DenseUnivariatePolynomial::new(vec![F::one(), beta, gamma]))
+            + ((((self.witness_polys.a_s.clone() + create_monomial(1, beta, gamma))
                 * (self.witness_polys.b_s.clone()
-                    + DenseUnivariatePolynomial::new(vec![
-                        F::one(),
-                        beta * F::from(2u32),
-                        gamma,
-                    ]))
+                    + create_monomial(1, beta * F::from(2u32), gamma))
                 * (self.witness_polys.c_s.clone()
-                    + DenseUnivariatePolynomial::new(vec![
-                        F::one(),
-                        beta * F::from(3u32),
-                        gamma,
-                    ]))
-                * self.witness_polys.zh_accumulator_poly.clone())
+                    + create_monomial(1, beta * F::from(3u32), gamma))
+                * self.witness_polys.accumulator_poly.clone())
                 * alpha)
                 / zh_poly.clone())
             - ((((self.witness_polys.a_s.clone()
@@ -225,7 +220,8 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
                 * w_accumulator_poly.clone())
                 * alpha)
                 / zh_poly.clone())
-            + ((((self.witness_polys.zh_accumulator_poly.clone() - F::ONE) * (l1_poly))
+            + ((((self.witness_polys.accumulator_poly.clone() - F::ONE)
+                * (l1_poly.to_coefficient_poly()))
                 * alpha.pow(&[2 as u64]))
                 / zh_poly);
 
@@ -241,25 +237,23 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         x_2n_values[group_order as usize * 2] = F::one();
 
         let rands: Vec<F> = generate_random_numbers(2);
+        let b_10 = rands[0];
+        let b_11 = rands[1];
 
-        let t_low_blinding = DenseUnivariatePolynomial::new(x_2n_values.clone()) * rands[0];
-        let t_mid_blinding = DenseUnivariatePolynomial::new(x_n_values) * rands[1] - rands[0];
-        let t_high_blinding = t_high.clone() + rands[1].neg();
-
-        let t_low_coeff = t_low + t_low_blinding.clone();
-        let t_mid_coeff = t_mid + t_mid_blinding.clone();
-        let t_high_coeff = t_high + t_high_blinding.clone();
+        let t_low_coeff =
+            t_low.clone() + (DenseUnivariatePolynomial::new(x_n_values.clone()) * b_10);
+        let t_mid_coeff =
+            t_mid.clone() + (DenseUnivariatePolynomial::new(x_n_values.clone()) * b_11 - b_10);
+        let t_high_coeff = t_high.clone() + b_11.neg();
 
         let t_low_commitment = UnivariateKZG::<P>::commitment(&t_low_coeff, &self.srs);
         let t_mid_commitment = UnivariateKZG::<P>::commitment(&t_mid_coeff, &self.srs);
         let t_high_commitment = UnivariateKZG::<P>::commitment(&t_high_coeff, &self.srs);
-
         self.random_number.alpha = alpha;
-        self.witness_polys.zh_accumulator_poly = w_accumulator_poly.clone();
-        self.witness_polys.t_low_poly = t_low_blinding.clone();
-        self.witness_polys.t_mid_poly = t_mid_blinding.clone();
-        self.witness_polys.t_low_poly = t_low_blinding.clone();
-
+        self.witness_polys.w_accumulator_poly = w_accumulator_poly.clone();
+        self.witness_polys.t_low_poly = t_low_coeff.clone();
+        self.witness_polys.t_mid_poly = t_mid_coeff.clone();
+        self.witness_polys.t_high_poly = t_high_coeff.clone();
         (t_low_commitment, t_mid_commitment, t_high_commitment)
     }
 
@@ -269,7 +263,7 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         let a_s_poly = self.witness_polys.a_s.clone();
         let b_s_poly = self.witness_polys.b_s.clone();
         let c_s_poly = self.witness_polys.c_s.clone();
-        let w_accumulator_poly = self.witness_polys.zh_accumulator_poly.clone();
+        let w_accumulator_poly = self.witness_polys.w_accumulator_poly.clone();
         let sigma1_poly = self.preprocessed_input.sigma_1.to_coefficient_poly();
         let sigma2_poly = self.preprocessed_input.sigma_2.to_coefficient_poly();
 
@@ -310,7 +304,7 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         let a_s_poly = self.witness_polys.a_s.clone();
         let b_s_poly = self.witness_polys.b_s.clone();
         let c_s_poly = self.witness_polys.c_s.clone();
-        let w_accumulator_poly = self.witness_polys.zh_accumulator_poly.clone();
+        let accumulator_poly = self.witness_polys.accumulator_poly.clone();
         let sigma1_poly = self.preprocessed_input.sigma_1.to_coefficient_poly();
         let sigma2_poly = self.preprocessed_input.sigma_2.to_coefficient_poly();
 
@@ -321,9 +315,8 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
         let sigma1_poly_zeta = self.witness_polys.sigma1_poly_zeta;
         let sigma2_poly_zeta = self.witness_polys.sigma2_poly_zeta;
 
-        let mut l1_values = vec![F::zero(); group_order];
-        l1_values[0] = F::one();
-        let l1_poly = DenseUnivariatePolynomial::new(l1_values);
+        let domain = Domain::new(group_order);
+        let l1_poly = UnivariateEval::new(l1_values(group_order), domain);
 
         let zh_poly = DenseUnivariatePolynomial::new(zh_values(group_order));
         let root_of_unity: F = root_of_unity(group_order as u64);
@@ -335,7 +328,7 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
                 + (self.preprocessed_input.q_o.to_coefficient_poly() * c_s_poly_zeta)
                 + witness.public_poly.to_coefficient_poly().evaluate(zeta)
                 + self.preprocessed_input.q_c.to_coefficient_poly())
-                + (((w_accumulator_poly.clone()
+                + (((accumulator_poly.clone()
                     * (a_s_poly_zeta + (beta * zeta) + gamma)
                     * (b_s_poly_zeta + (beta * F::from(2u8) * zeta) + gamma)
                     * (c_s_poly_zeta + (beta * F::from(3u8) * zeta) + gamma))
@@ -346,10 +339,12 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
                         * (b_s_poly_zeta + (beta * sigma2_poly_zeta) + gamma)
                         * w_accumulator_poly_zeta))
                     * alpha)
-                + (((w_accumulator_poly.clone() - F::ONE) * (l1_poly.evaluate(zeta)))
+                + (((accumulator_poly.clone() - F::ONE)
+                    * (l1_poly.to_coefficient_poly().evaluate(zeta)))
                     * alpha.pow(&[2 as u64]))
                 - ((self.witness_polys.t_low_poly.clone()
-                    + (self.witness_polys.t_mid_poly.clone() * zeta.pow(&[group_order as u64]))
+                    + (self.witness_polys.t_mid_poly.clone()
+                        * zeta.pow(&[self.preprocessed_input.group_order]))
                     + (self.witness_polys.t_high_poly.clone()
                         * zeta.pow(&[2 * self.preprocessed_input.group_order])))
                     * zh_poly.evaluate(zeta));
@@ -368,13 +363,12 @@ impl<F: PrimeField, P: Pairing> Prover<F, P> {
             DenseUnivariatePolynomial::new(vec![(zeta * root_of_unity).neg(), F::one()]);
 
         let w_zeta_omega_poly =
-            (w_accumulator_poly - w_accumulator_poly_zeta) / x_minus_zeta_omega_poly;
+            (accumulator_poly - w_accumulator_poly_zeta) / x_minus_zeta_omega_poly;
 
         let w_zeta_commitment = UnivariateKZG::<P>::commitment(&w_zeta_poly, &self.srs);
         let w_zeta_omega_commitment = UnivariateKZG::<P>::commitment(&w_zeta_omega_poly, &self.srs);
 
         self.random_number.nu = nu;
-
         self.witness_polys.w_zeta_poly = w_zeta_poly;
         self.witness_polys.w_zeta_omega_poly = w_zeta_omega_poly;
 

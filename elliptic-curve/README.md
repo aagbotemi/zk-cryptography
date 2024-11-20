@@ -25,14 +25,14 @@ assert!(curve.is_on_curve(&point));
 // Perform point addition
 let point_b = ECPoint::new(Field::new(6, 17), Field::new(3, 17), curve);
 let result = curve.add(&point, &point_b).unwrap();
-println!("Result of addition: {:?}", result);
+// println!("Result of addition: {:?}", result);
 
 // Perform point doubling
 let doubled_point = curve.double(&point).unwrap();
-println!("Result of doubling: {:?}", doubled_point);
+// println!("Result of doubling: {:?}", doubled_point);
 
 // Perform scalar multiplication
 let scalar = 3;
 let multiplied_point = curve.scalar_multiplication(&point, scalar).unwrap();
-println!("Result of scalar multiplication: {:?}", multiplied_point);
+// println!("Result of scalar multiplication: {:?}", multiplied_point);
 ```

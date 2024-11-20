@@ -99,7 +99,7 @@ mod tests {
         assert_eq!(checker_7, Fr::from(-18));
         assert_eq!(checker_8, Fr::from(24));
 
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -127,7 +127,7 @@ mod tests {
         assert_eq!(quotient_x, expected_poly_after_quotient_x);
         assert_eq!(quotient_y, expected_poly_after_quotient_y);
         assert_eq!(quotient_z.evaluations[0], Fr::from(-11));
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -158,7 +158,7 @@ mod tests {
         assert_eq!(expected_poly_z, remainder_after_y);
         assert_eq!(Fr::from(114), remainder_after_z.evaluations[0]);
 
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -183,6 +183,6 @@ mod tests {
 
         assert_eq!(expected_poly, result_poly);
 
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }

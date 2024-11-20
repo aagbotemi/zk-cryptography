@@ -59,7 +59,7 @@ mod tests {
         let reconstructed_secret = reconstruct_secret(&picked_points, reconstruct_at);
 
         assert_eq!(secret, reconstructed_secret);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -75,7 +75,7 @@ mod tests {
         let reconstructed_secret = reconstruct_secret(&picked_points, reconstruct_at);
 
         assert_eq!(secret, reconstructed_secret);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -98,6 +98,6 @@ mod tests {
 
         assert_ne!(secret, reconstructed_secret_above_threshold);
         assert_ne!(secret, reconstructed_secret_below_threshold);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }

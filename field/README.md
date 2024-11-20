@@ -17,36 +17,36 @@ let another_field_element = Field::new(another_value, modulus);
 
 // Addition
 let sum = field_element + another_field_element;
-println!("Sum: {:?}", sum);
+// println!("Sum: {:?}", sum);
 
 // Subtraction
 let difference = field_element - another_field_element;
-println!("Difference: {:?}", difference);
+// println!("Difference: {:?}", difference);
 
 // Multiplication
 let product = field_element * another_field_element;
-println!("Product: {:?}", product);
+// println!("Product: {:?}", product);
 
 // Division
 let quotient = field_element / another_field_element;
-println!("Quotient: {:?}", quotient);
+// println!("Quotient: {:?}", quotient);
 
 // Inverse
 let inverse = field_element.inverse().unwrap();
-println!("Inverse: {:?}", inverse);
+// println!("Inverse: {:?}", inverse);
 
 // Power
 let exponent = 3;
 let power = field_element.pow(exponent);
-println!("Power: {:?}", power);
+// println!("Power: {:?}", power);
 
 // Square root
 let sqrt = field_element.sqrt().unwrap();
-println!("Square Root: {:?}", sqrt);
+// println!("Square Root: {:?}", sqrt);
 
 // Zero and One
 let zero = field_element.zero();
 let one = field_element.one();
-println!("Zero: {:?}", zero);
-println!("One: {:?}", one);
+// println!("Zero: {:?}", zero);
+// println!("One: {:?}", one);
 ```

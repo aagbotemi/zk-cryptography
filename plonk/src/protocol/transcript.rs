@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use ark_ec::pairing::Pairing;
 use ark_ff::PrimeField;
 use merlin::MerlinTranscript;
-use polynomial::DenseUnivariatePolynomial;
 
 use super::primitives::PlonkRoundTranscript;
 
@@ -23,16 +22,9 @@ impl<P: Pairing> PlonkRoundTranscript<P> {
         self.transcript.append_point::<P>(b"first_round", &c_s);
     }
 
-    pub fn second_round<F: PrimeField>(
-        &mut self,
-        zh_blinding_accumulator_poly: DenseUnivariatePolynomial<F>,
-        accumulator_commitment: P::G1,
-    ) {
+    pub fn second_round<F: PrimeField>(&mut self, accumulator_commitment: P::G1) {
         self.transcript
-            .append_point::<P>(b"second_round", &accumulator_commitment);
-
-        let poly_bytes = zh_blinding_accumulator_poly.to_bytes();
-        self.transcript.append_message(b"second_round", &poly_bytes);
+            .append_point::<P>(b"second_round", &accumulator_commitment)
     }
 
     pub fn third_round(&mut self, t_low: P::G1, t_mid: P::G1, t_high: P::G1) {
@@ -69,10 +61,6 @@ impl<P: Pairing> PlonkRoundTranscript<P> {
             .append_point::<P>(b"fifth_round", &w_zeta_commitment);
         self.transcript
             .append_point::<P>(b"fifth_round", &w_zeta_omega_commitment);
-    }
-
-    pub fn challenge_n_round<F: PrimeField>(&mut self, label: &[u8], n: usize) -> Vec<F> {
-        self.transcript.challenge_n::<F>(label, n)
     }
 
     pub fn challenge_round<F: PrimeField>(&mut self, label: &[u8]) -> F {

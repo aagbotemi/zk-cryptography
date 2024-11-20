@@ -139,7 +139,7 @@ mod tests {
         let evaluation = polys.evaluation(&vec![Fq::from(2), Fq::from(3)]);
 
         assert_eq!(evaluation, Fq::from(42));
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -152,7 +152,7 @@ mod tests {
 
         let evaluation = partial_evaluation.evaluation(&vec![Fq::from(3)]);
         assert_eq!(evaluation, Fq::from(42));
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -166,7 +166,7 @@ mod tests {
             element_product,
             vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(3)]
         );
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -180,7 +180,7 @@ mod tests {
             element_product,
             vec![Fq::from(0), Fq::from(1), Fq::from(2), Fq::from(4)]
         );
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -202,6 +202,6 @@ mod tests {
         let max_degree_2 = mles_2.max_degree();
         assert_eq!(n_vars_2, 5);
         assert_eq!(max_degree_2, 2);
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 }

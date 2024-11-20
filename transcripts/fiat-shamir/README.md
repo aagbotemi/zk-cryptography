@@ -16,13 +16,13 @@ transcript.commit(b"some data");
 
 // Generating a challenge
 let challenge = transcript.challenge();
-println!("Challenge: {:?}", challenge);
+// println!("Challenge: {:?}", challenge);
 
 // Evaluating the challenge into a field element
 let field_element: F = transcript.evaluate_challenge_into_field();
-println!("Field Element: {:?}", field_element);
+// println!("Field Element: {:?}", field_element);
 
 // Evaluating multiple challenges into field elements
 let field_elements: Vec<F> = transcript.evaluate_n_challenge_into_field(&3);
-println!("Field Elements: {:?}", field_elements);
+// println!("Field Elements: {:?}", field_elements);
 ```

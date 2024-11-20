@@ -158,7 +158,7 @@ pub fn evaluate_inner<F: PrimeField>(
                         result.insert(Some(exprs[0].to_string()), value);
                         return result;
                     } else {
-                        println!("exprs:{:?}", exprs);
+                        // println!("exprs:{:?}", exprs);
                         panic!("ok wtf is {}", exprs[0]);
                     }
                 }

@@ -152,7 +152,7 @@ mod tests {
         let verify_status = MultilinearKZG::verify(&commit, &verifier_points, &proof, &tau);
 
         assert_eq!(verify_status, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -194,6 +194,6 @@ mod tests {
 
         assert_eq!(verify_status, true);
         assert_eq!(tampered_tau_verify_status, false);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }
