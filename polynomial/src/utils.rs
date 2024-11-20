@@ -360,6 +360,6 @@ mod tests {
         assert_eq!(one, expected_one);
         assert_eq!(two, expected_two);
         assert_eq!(three, expected_three);
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 }

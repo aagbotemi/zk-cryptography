@@ -89,7 +89,7 @@ mod tests {
         assert_eq!(one, expected_one);
         assert_eq!(hundred, expected_hundred);
         assert_ne!(ninety, incorrect_ninety);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -122,7 +122,7 @@ mod tests {
 
         assert_eq!(evaluation1, expected_polynomial1);
         assert_eq!(evaluation2, expected_polynomial2);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -138,7 +138,7 @@ mod tests {
                 (Fr::from(3), Fr::from(1))
             ]
         );
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -161,6 +161,6 @@ mod tests {
             res == Fr::from(36),
             "Incorrect sum over the boolean hypercube"
         );
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }

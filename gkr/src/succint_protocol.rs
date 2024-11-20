@@ -303,7 +303,7 @@ mod tests {
         let verify = SuccintGKRProtocol::verify(&circuit, &commitment, &proof, &tau);
 
         assert_eq!(verify, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -345,7 +345,7 @@ mod tests {
             SuccintGKRProtocol::<Fr, Bls12_381>::verify(&circuit, &commitment, &proof, &tau);
 
         assert!(&verify);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -403,6 +403,6 @@ mod tests {
 
         let verify = SuccintGKRProtocol::verify(&circuit, &commitment, &proof, &tau);
         assert!(verify);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }

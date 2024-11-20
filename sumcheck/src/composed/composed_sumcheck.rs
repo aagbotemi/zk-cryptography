@@ -136,7 +136,7 @@ mod tests {
         let composedpoly4 = ComposedMultilinear::new(vec![poly1]);
         let sum4 = ComposedSumcheck::calculate_poly_sum(&composedpoly4);
         assert_eq!(sum4, Fr::from(12));
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -156,7 +156,7 @@ mod tests {
         let sum = ComposedSumcheck::calculate_poly_sum(&proof.poly);
         let verifer: bool = sumcheck.verify(&proof, sum);
         assert_eq!(verifer, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -177,7 +177,7 @@ mod tests {
         let sum = ComposedSumcheck::calculate_poly_sum(&proof.poly);
         let verifer: bool = sumcheck.verify(&proof, sum);
         assert_eq!(verifer, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -207,7 +207,7 @@ mod tests {
         let verifer = sumcheck.verify(&proof.0, sum);
 
         assert_eq!(verifer, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -237,6 +237,6 @@ mod tests {
         let verifer = sumcheck.verify(&proof.0, sum);
 
         assert_eq!(verifer, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }

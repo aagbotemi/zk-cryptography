@@ -119,7 +119,7 @@ mod tests {
         let mut prover = Sumcheck::new(poly);
         prover.poly_sum();
         assert_eq!(prover.sum, Fr::from(12));
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -140,7 +140,7 @@ mod tests {
         let verifer: bool = sumcheck.verify(&proof);
 
         assert_eq!(verifer, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -169,7 +169,7 @@ mod tests {
         let verifer = sumcheck.verify(&proof.0);
 
         assert_eq!(verifer, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -198,6 +198,6 @@ mod tests {
         let verifer = sumcheck.verify(&proof.0);
 
         assert_eq!(verifer, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }

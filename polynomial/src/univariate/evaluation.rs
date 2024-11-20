@@ -3,6 +3,7 @@ use ark_ff::PrimeField;
 
 use super::domain::Domain;
 
+#[derive(Debug)]
 pub struct UnivariateEval<F: PrimeField> {
     /// this is a list of the evaluation of the polynomial
     pub values: Vec<F>,
@@ -84,57 +85,3 @@ impl<F: PrimeField> UnivariateEval<F> {
         DenseUnivariatePolynomial::new(coeff[..length_of_poly_unscaled].to_vec())
     }
 }
-
-/*
-#[derive(Clone, PartialEq, Eq, Default, Debug)]
-pub struct Domain<F: PrimeField> {
-    /// This is a const size of the domain
-    pub size: u64,
-    /// This is the generator of the domain, ofter regarded as the root of unity (omega)
-    pub generator: F,
-    /// This is the inverse of the group generator
-    pub group_gen_inverse: F,
-    /// This is the inverse of the group size
-    pub group_size_inverse: F,
-}
-
-#[derive(Debug, Clone)]
-pub struct UnivariateEval<F: PrimeField> {
-    pub values: Vec<F>,
-    pub domain: Domain<F>,
-}
-
-impl<F: PrimeField> UnivariateEval<F> {
-    pub fn new(values: Vec<F>, domain: Domain<F>) -> Self {
-        UnivariateEval { values, domain }
-    }
-
-    pub fn to_coefficients(&self) -> Vec<F> {
-        let mut evals = self.values.clone();
-        self.domain.compute_ifft(&mut evals)
-    }
-
-    pub fn to_coefficient_poly(&self) -> DenseUnivariatePolynomial<F> {
-        let coefficients = self.to_coefficients();
-        DenseUnivariatePolynomial::new(coefficients)
-    }
-
-    /// This function is used to convert the coefficient form of the polynomial to the evaluation form
-    pub fn from_coefficients(coefficients: Vec<F>) -> Self {
-        let mut coeffs = coefficients.clone();
-        let domain = Domain::<F>::new(coefficients.len() as usize);
-        let evals = domain.compute_fft(&mut coeffs);
-
-        UnivariateEval {
-            values: evals,
-            domain,
-        }
-    }
-
-    /// This function performs interpolation on the vaules provided and returns a polynomial
-    pub fn interpolate(values: Vec<F>, domain: Domain<F>) -> DenseUnivariatePolynomial<F> {
-        let coeffs = domain.compute_ifft(&values);
-        DenseUnivariatePolynomial::new(coeffs)
-    }
-}
-*/

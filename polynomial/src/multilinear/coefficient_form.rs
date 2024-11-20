@@ -156,7 +156,7 @@ mod tests {
 
         let p_eval = polynomial.partial_evaluation(Fq::from(3_u8));
         assert_eq!(p_eval, result_polynomial);
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -164,7 +164,7 @@ mod tests {
         let polynomial = init();
         let evaluation = polynomial.evaluation(&vec![Fq::from(5), Fq::from(6)]);
         assert_eq!(evaluation, Fq::from(136));
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -172,7 +172,7 @@ mod tests {
         let polynomial = init();
         let evaluation = polynomial.evaluation(&vec![Fq::from(2), Fq::from(3)]);
         assert_eq!(evaluation, Fq::from(25));
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 
     #[test]
@@ -180,6 +180,6 @@ mod tests {
         let polynomial = init();
         let degree = polynomial.degree();
         assert_eq!(degree, 2);
-        println!("{}", Fq::summary());
+        // println!("{}", Fq::summary());
     }
 }

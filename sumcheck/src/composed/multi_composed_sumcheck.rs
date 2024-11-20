@@ -210,7 +210,7 @@ mod tests {
         let multi_composed_vec_2 = vec![composedmle3, composedmle4];
         let sum_2 = MultiComposedSumcheckProver::calculate_poly_sum(&multi_composed_vec_2);
         assert_eq!(sum_2, Fr::from(8));
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -227,7 +227,7 @@ mod tests {
         let (proof, _) = MultiComposedSumcheckProver::prove(&multi_composed, &sum).unwrap();
         let verify = MultiComposedSumcheckVerifier::verify(&multi_composed, &proof).unwrap();
         assert!(verify);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -244,7 +244,7 @@ mod tests {
         let (proof, _) = MultiComposedSumcheckProver::prove(&multi_composed, &sum).unwrap();
         let verify = MultiComposedSumcheckVerifier::verify(&multi_composed, &proof).unwrap();
         assert!(verify);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -260,7 +260,7 @@ mod tests {
         let (proof, _) = MultiComposedSumcheckProver::prove(&multi_composed, &sum).unwrap();
         let verify = MultiComposedSumcheckVerifier::verify(&multi_composed, &proof).unwrap();
         assert!(verify);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -307,6 +307,6 @@ mod tests {
         let (proof, _) = MultiComposedSumcheckProver::prove(&multi_composed, &sum).unwrap();
         let verify = MultiComposedSumcheckVerifier::verify(&multi_composed, &proof).unwrap();
         assert!(verify);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }

@@ -1,5 +1,6 @@
-use crate::utils::serial_fft;
+use crate::utils::{compute_complex_form, fft, serial_fft};
 use ark_ff::{FftField, PrimeField};
+use num_complex::Complex64;
 
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct Domain<F: FftField> {
@@ -143,94 +144,6 @@ impl<F: PrimeField> Domain<F> {
         self.group_gen_inverse
     }
 }
-
-/*
-impl<F: PrimeField> Domain<F> {
-    pub fn new(num_of_coeffs: usize) -> Domain<F> {
-        let size = if num_of_coeffs.is_power_of_two() {
-            num_of_coeffs
-        } else {
-            num_of_coeffs.checked_next_power_of_two().unwrap()
-        } as u64;
-
-        let generator = F::get_root_of_unity(size).unwrap();
-        let group_gen_inverse = generator.inverse().unwrap();
-        let group_size_inverse = F::from(size).inverse().unwrap();
-
-        Domain {
-            size,
-            generator,
-            group_gen_inverse,
-            group_size_inverse,
-        }
-    }
-
-    /// This function returns the roots of unity
-    pub fn get_roots_of_unity(&self) -> Vec<F> {
-        let mut roots = Vec::with_capacity(self.size as usize);
-        let mut current = F::one();
-        let omega = self.generator;
-
-        for _ in 0..self.size {
-            roots.push(current);
-            current *= omega;
-        }
-
-        roots
-    }
-
-    /// This function gets inverse roots of unity
-    pub fn get_inv_roots_of_unity(&self) -> Vec<F> {
-        let mut roots = Vec::with_capacity(self.size as usize);
-        let mut current = F::one();
-        let omega = self.group_gen_inverse;
-
-        for _ in 0..self.size {
-            roots.push(current);
-            current *= omega;
-        }
-
-        roots
-    }
-
-    /// This function is used to get the root of unity
-    pub fn get_root_of_unity(&self) -> F {
-        self.generator
-    }
-
-    pub fn compute_fft(&self, coeffs: &Vec<F>) -> Vec<F> {
-        let coeff_in_complex_form: Vec<Complex64> = compute_complex_form(coeffs);
-        let fft = fft(&coeff_in_complex_form, false);
-
-        fft.iter()
-            .take(coeffs.len())
-            .map(|i| F::from(i.re.round() as u64))
-            .collect()
-    }
-
-    pub fn compute_ifft(&self, coeffs: &Vec<F>) -> Vec<F> {
-        let coeff_in_complex_form: Vec<Complex64> = compute_complex_form(coeffs);
-        let ifft = fft(&coeff_in_complex_form, true);
-
-        ifft.iter()
-            .take(coeffs.len())
-            .map(|i| F::from(i.re.round() as u64))
-            .collect()
-    }
-
-    pub fn size(&self) -> u64 {
-        self.size
-    }
-
-    pub fn generator(&self) -> F {
-        self.generator
-    }
-
-    pub fn group_gen_inverse(&self) -> F {
-        self.group_gen_inverse
-    }
-}
- */
 
 #[cfg(test)]
 mod tests {

@@ -228,7 +228,7 @@ mod tests {
         let verify = GKRProtocol::verify(&circuit, &input, &proof);
 
         assert_eq!(verify, true);
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 
     #[test]
@@ -282,6 +282,6 @@ mod tests {
         let proof = GKRProtocol::prove(&circuit, &evaluation);
 
         assert!(GKRProtocol::verify(&circuit, &input, &proof));
-        println!("{}", Fr::summary());
+        // println!("{}", Fr::summary());
     }
 }
