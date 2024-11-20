@@ -4,17 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ark-bls12-381 = "0.4.0"
-ark-ec = "0.4.2"
-ark-ff = "0.4.2"
-rand = "0.8.5"
-rayon = "1.10.0"
-ark-serialize = "0.4.2"
-blake2 = "0.10.6"
-modinverse = "0.1.1"
-num-bigint = {version = "0.4.6", features = ['rand']}
-num-traits = "0.2.19"
-num-integer = "0.1.46"
+ark-bls12-381.workspace = true
+ark-ec.workspace = true
+ark-ff.workspace = true
+rand.workspace = true
+ark-serialize.workspace = true
+blake2.workspace = true
+modinverse.workspace = true
+num-bigint.workspace = true
+num-traits.workspace = true
 
 [dev-dependencies]
 criterion = "0.5.1"

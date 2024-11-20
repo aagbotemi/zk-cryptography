@@ -4,13 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ark-ec = "0.4.2"
-ark-ff = "0.4.2"
-polynomial = { path = "../polynomial" }
-ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
-field-tracker = {git = "https://github.com/sublinearlabs/field-tracker", branch = "main"}
-rand = "0.8.5"
-ark-bls12-381 = "0.4.0"
+ark-ec.workspace = true
+ark-ff.workspace = true
+polynomial.workspace = true
+ark-test-curves.workspace = true
+field-tracker.workspace = true
 
 [dev-dependencies]
 criterion = "0.5.1"

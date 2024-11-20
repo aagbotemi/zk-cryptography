@@ -6,15 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-polynomial = { path = "../polynomial" }
-circuit = { path = "../circuit" }
-sumcheck = { path = "../sumcheck" }
-fiat_shamir = { path = "../fiat-shamir-transcript" }
-ark-ff = "0.4.2"
-ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
-kzg = { path = "../kzg" }
-ark-ec = "0.4.2"
-field-tracker = {git = "https://github.com/sublinearlabs/field-tracker", branch = "main"}
+polynomial.workspace = true
+circuit.workspace = true
+sumcheck.workspace = true
+fiat_shamir.workspace = true
+ark-ff.workspace = true
+ark-test-curves.workspace = true
+kzg.workspace = true
+ark-ec.workspace = true
+field-tracker.workspace = true
 
 [dev-dependencies]
 criterion = "0.5.1"

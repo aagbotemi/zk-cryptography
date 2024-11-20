@@ -1,0 +1,13 @@
+[package]
+name = "plonk"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ark-ff.workspace = true
+merlin.workspace = true
+polynomial.workspace = true
+ark-ec.workspace = true
+rand.workspace = true
+kzg.workspace = true
+ark-test-curves.workspace = true

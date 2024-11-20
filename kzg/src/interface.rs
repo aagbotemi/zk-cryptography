@@ -35,8 +35,10 @@ pub trait TrustedSetupInterface<P: Pairing> {
 pub trait UnivariateKZGInterface<P: Pairing> {
     fn generate_srs(tau: &P::ScalarField, max_degree: &usize) -> TrustedSetup<P>;
 
-    fn commitment(poly: &DenseUnivariatePolynomial<P::ScalarField>, srs: &TrustedSetup<P>)
-        -> P::G1;
+    fn commitment<F: PrimeField>(
+        poly: &DenseUnivariatePolynomial<F>,
+        srs: &TrustedSetup<P>,
+    ) -> P::G1;
 
     fn open<F: PrimeField>(
         poly_: &DenseUnivariatePolynomial<F>,

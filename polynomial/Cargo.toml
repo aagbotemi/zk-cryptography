@@ -7,9 +7,10 @@ description = "This is a utils library for working with polynomial"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ark-ff = "0.4.2"
-num-bigint = "0.4.5"
-num-complex = "0.4.6"
-num-traits = "0.2.19"
-rand = "0.8.5"
-field-tracker = {git = "https://github.com/sublinearlabs/field-tracker", branch = "main"}
+ark-ff.workspace = true
+num-bigint.workspace = true
+num-complex.workspace = true
+num-traits.workspace = true
+rand.workspace = true
+ark-test-curves.workspace = true
+field-tracker.workspace = true

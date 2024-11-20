@@ -256,10 +256,9 @@ mod tests {
 
     use crate::interface::MultilinearTrait;
     use crate::multilinear::evaluation_form::Multilinear;
-    
-    use crate::Fq as Fq_old;
+    use ark_test_curves::bls12_381::Fr as Fq_old;
 
-    type Fq = Ft<1, Fq_old>;
+    type Fq = Ft<4, Fq_old>;
 
     #[test]
     fn test_add_mul_distinct() {
@@ -320,7 +319,7 @@ mod tests {
         let evaluation_point = Fq::from(5);
         let new_polynomial = polynomial.partial_evaluation(&evaluation_point, &0);
 
-        let expected_polynomial = Multilinear::new(vec![Fq::from(15), Fq::from(4)]);
+        let expected_polynomial = Multilinear::new(vec![Fq::from(-2), Fq::from(21)]);
 
         assert_eq!(new_polynomial, expected_polynomial);
     }
@@ -367,8 +366,8 @@ mod tests {
         let points = vec![Fq::from(5), Fq::from(6)];
         let result_polynomial = polynomial.evaluation(&points);
 
-        assert_eq!(result_polynomial, Fq::from(0_u8));
-        assert_ne!(result_polynomial, Fq::from(3_u8));
+        assert_eq!(result_polynomial, Fq::from(136));
+        assert_ne!(result_polynomial, Fq::from(3));
 
         let evaluations_2 = vec![
             Fq::from(3),
@@ -383,7 +382,7 @@ mod tests {
         let polynomial_2 = Multilinear::new(evaluations_2);
         let points_2 = vec![Fq::from(2), Fq::from(3), Fq::from(1)];
         let result_polynomial_2 = polynomial_2.evaluation(&points_2);
-        assert_eq!(result_polynomial_2, Fq::from(5));
+        assert_eq!(result_polynomial_2, Fq::from(39));
         println!("{}", Fq::summary());
     }
 
@@ -431,7 +430,7 @@ mod tests {
         let evaluation2 = poly2.split_poly_into_two_and_sum_each_part();
 
         let expected_polynomial1 = Multilinear::new(vec![Fq::from(2), Fq::from(10)]);
-        let expected_polynomial2 = Multilinear::new(vec![Fq::from(9), Fq::from(6)]);
+        let expected_polynomial2 = Multilinear::new(vec![Fq::from(9), Fq::from(23)]);
 
         assert_eq!(evaluation1, expected_polynomial1);
         assert_eq!(evaluation2, expected_polynomial2);

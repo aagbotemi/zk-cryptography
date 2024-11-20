@@ -3,8 +3,31 @@ resolver = "2"
 
 members = [
     "gkr", "elliptic-curve",
-    "fiat-shamir-transcript", "field",
+    "transcripts/fiat-shamir", "field",
     "polynomial",
     "shamir-secret-sharing", "circuit",
-    "sumcheck", "kzg", "signature-schemes",
+    "sumcheck", "kzg", "signature-schemes", "plonk", "transcripts/merlin",
 ]
+
+[workspace.dependencies]
+polynomial = { path = "polynomial" }
+fiat_shamir = { path = "transcripts/fiat-shamir" }
+merlin = { path = "transcripts/merlin" }
+kzg = { path = "kzg" }
+circuit = { path = "circuit" }
+sumcheck = { path = "sumcheck" }
+field = { path = "field" }
+elliptic_curve = { path = "elliptic-curve" }
+ark-ff = "0.4.2"
+ark-ec = "0.4.2"
+sha2 = "0.10.8"
+num-bigint = {version = "0.4.6", features = ['rand']}
+num-complex = "0.4.6"
+num-traits = "0.2.19"
+rand = "0.8.5"
+blake2 = "0.10.6"
+ark-bls12-381 = "0.4.0"
+ark-serialize = "0.4.2"
+modinverse = "0.1.1"
+ark-test-curves = {version = "0.4.2", features = ["bls12_381_curve"]}
+field-tracker = {git = "https://github.com/sublinearlabs/field-tracker", branch = "main"}

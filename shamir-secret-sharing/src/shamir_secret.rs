@@ -20,7 +20,8 @@ pub fn create_shares<F: PrimeField>(
         }
     }
 
-    let polynom: SparseUnivariatePolynomial<F> = SparseUnivariatePolynomial::interpolation(&secret_shares);
+    let polynom: SparseUnivariatePolynomial<F> =
+        SparseUnivariatePolynomial::interpolation(&secret_shares);
 
     let mut shares: Vec<(F, F)> = Vec::with_capacity(threshold);
     for i in 1..=total_shares {
@@ -42,8 +43,6 @@ mod tests {
     use crate::shamir_secret::{create_shares, reconstruct_secret};
     use ark_test_curves::bls12_381::Fr as Fr_old;
     use field_tracker::Ft;
-
-    use super::*;
 
     type Fr = Ft<4, Fr_old>;
 
