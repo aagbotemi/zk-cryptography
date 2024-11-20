@@ -8,7 +8,9 @@ use kzg::{
     interface::UnivariateKZGInterface, trusted_setup::TrustedSetup, univariate_kzg::UnivariateKZG,
 };
 use polynomial::{
-    utils::generate_random_numbers, DenseUnivariatePolynomial, UnivariatePolynomialTrait,
+    univariate::{domain::Domain, evaluation::UnivariateEval},
+    utils::generate_random_numbers,
+    DenseUnivariatePolynomial, UnivariatePolynomialTrait,
 };
 
 use super::{
@@ -33,8 +35,9 @@ impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
 
     pub fn prove(&mut self, witness: &Witness<F>) -> PlonkProof<P, F> {
         // round 1
-        let (a_s, b_s, c_s) = self.first_round(&witness);
-        self.transcript.first_round(a_s, b_s, c_s);
+        let (as_commitment, bs_commitment, cs_commitment) = self.first_round(&witness);
+        self.transcript
+            .first_round(as_commitment, bs_commitment, cs_commitment);
 
         // round 2
         let accumulator_commitment = self.second_round(&witness);
@@ -72,9 +75,9 @@ impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
         self.random_number.mu = mu;
 
         PlonkProof {
-            a_s,
-            b_s,
-            c_s,
+            as_commitment,
+            bs_commitment,
+            cs_commitment,
             accumulator_commitment,
             t_low,
             t_mid,
@@ -98,6 +101,7 @@ impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
 
         let a_s = DenseUnivariatePolynomial::new(vec![rands[1], rands[0]]) * zh_poly.clone()
             + witness.a.to_coefficient_poly().clone();
+        // pub s2_coeff: Option<DenseUnivariatePolynomial<F>>,
 
         let b_s = DenseUnivariatePolynomial::new(vec![rands[3], rands[2]]) * zh_poly.clone()
             + witness.b.to_coefficient_poly().clone();
@@ -110,6 +114,7 @@ impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
         let bs_commitment = UnivariateKZG::<P>::commitment(&b_s, &self.srs);
         let cs_commitment = UnivariateKZG::<P>::commitment(&c_s, &self.srs);
 
+        // dbg!(&as_commitment, &bs_commitment, &cs_commitment);
         self.witness_polys.a_s = a_s;
         self.witness_polys.b_s = b_s;
         self.witness_polys.c_s = c_s;
@@ -121,9 +126,8 @@ impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
         let roots_of_unity: Vec<F> = roots_of_unity(group_order as u64);
         let mut accumulator = vec![F::one(); group_order as usize];
 
-        let challenge: Vec<F> = self.transcript.challenge_n_round(b"beta_gamma", 2);
-        let beta = challenge[0];
-        let gamma = challenge[1];
+        let beta = self.transcript.challenge_round(b"beta");
+        let gamma = self.transcript.challenge_round(b"gamma");
 
         for i in 0..group_order {
             let acc = accumulator[accumulator.len() - 1]
@@ -142,7 +146,10 @@ impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
         }
 
         let rands = generate_random_numbers(3);
-        let accumulator_poly = DenseUnivariatePolynomial::new(accumulator);
+
+        let domain: Domain<F> = Domain::new(group_order);
+        let accumulator_poly = UnivariateEval::interpolate(accumulator, domain);
+
         let zh_poly = DenseUnivariatePolynomial::new(zh_values(group_order));
 
         let zh_blinding_factor = DenseUnivariatePolynomial::new(vec![rands[0], rands[1], rands[2]]);
@@ -176,7 +183,9 @@ impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
         // l1 poly
         let mut l1_values = vec![F::zero(); group_order];
         l1_values[0] = F::one();
-        let l1_poly = DenseUnivariatePolynomial::new(l1_values);
+
+        let domain = Domain::new(group_order);
+        let l1_poly = UnivariateEval::new(l1_values, domain);
 
         let w_accumulator_poly =
             apply_w_to_polynomial(&zh_accumulator_poly.clone(), &root_of_unity);
@@ -222,7 +231,8 @@ impl<F: PrimeField, P: Pairing> PlonkProver<F, P> {
                 * w_accumulator_poly.clone())
                 * alpha)
                 / zh_poly.clone())
-            + ((((self.witness_polys.zh_accumulator_poly.clone() - F::ONE) * (l1_poly))
+            + ((((self.witness_polys.zh_accumulator_poly.clone() - F::ONE)
+                * (l1_poly.to_coefficient_poly()))
                 * alpha.pow(&[2 as u64]))
                 / zh_poly);
 

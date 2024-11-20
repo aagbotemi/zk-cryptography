@@ -48,10 +48,8 @@ pub fn zh_values<F: PrimeField>(group_order: usize) -> Vec<F> {
 }
 
 pub fn l1_values<F: PrimeField>(group_order: u64) -> Vec<F> {
-    let mut l1_values = vec![F::one()];
-    for _ in 0..group_order - 1 {
-        l1_values.push(F::zero());
-    }
+    let mut l1_values = vec![F::ZERO; group_order as usize];
+    l1_values[0] = F::ONE;
     l1_values
 }
 
@@ -61,10 +59,15 @@ pub fn compute_verifier_challenges<P: Pairing, F: PrimeField>(
     let mut transcript: PlonkRoundTranscript<P> = PlonkRoundTranscript::new();
 
     // beta and gamma
-    let _ = transcript.first_round(proof.a_s, proof.b_s, proof.c_s);
-    let challenge: Vec<F> = transcript.challenge_n_round(b"beta_gamma", 2);
-    let beta = challenge[0];
-    let gamma = challenge[1];
+    let _ = transcript.first_round(
+        proof.as_commitment,
+        proof.bs_commitment,
+        proof.cs_commitment,
+    );
+    // beta
+    let beta = transcript.challenge_round(b"beta");
+    // gamma
+    let gamma = transcript.challenge_round(b"gamma");
 
     // alpha
     let _ = transcript.second_round::<F>(proof.accumulator_commitment);
@@ -90,4 +93,15 @@ pub fn compute_verifier_challenges<P: Pairing, F: PrimeField>(
     let mu: F = transcript.challenge_round(b"mu");
 
     (beta, gamma, alpha, zeta, nu, mu)
+}
+
+pub fn create_monomial<F: PrimeField>(
+    degree: usize,
+    coeff: F,
+    constant: F,
+) -> DenseUnivariatePolynomial<F> {
+    let mut coeffs = vec![F::zero(); degree + 1];
+    coeffs[degree] = coeff;
+    coeffs[0] = constant;
+    DenseUnivariatePolynomial::from_coefficients_vec(coeffs)
 }

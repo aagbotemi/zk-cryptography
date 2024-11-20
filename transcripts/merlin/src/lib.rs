@@ -41,21 +41,21 @@ impl MerlinTranscript {
     }
 
     pub fn challenge<F: PrimeField>(&mut self, label: &[u8]) -> F {
-        self.hasher.update(label);
-        let challenge_bytes = self.hasher.finalize_reset();
+        let challenge = self.hasher.finalize_reset();
+        self.hasher.update(&label);
+        let challenge_bytes: [u8; 32] = challenge.into();
 
-        let hasher = Sha256::new();
-        self.hasher.update(challenge_bytes);
-        let final_bytes = hasher.finalize();
-
-        F::from_random_bytes(&final_bytes).expect("Failed to generate challenge")
+        F::from_be_bytes_mod_order(&challenge_bytes)
     }
 
     pub fn challenge_n<F: PrimeField>(&mut self, label: &[u8], n: usize) -> Vec<F> {
         let mut result = Vec::new();
 
         for _ in 0..n {
-            result.push(self.challenge(&label));
+            // for i in 0..n {
+            // let tt = format!("{:?} {}", label, i);
+            // result.push(self.challenge(tt.as_bytes()));
+            result.push(self.challenge(label));
         }
         result
     }

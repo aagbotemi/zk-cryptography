@@ -1,21 +1,101 @@
+use crate::{DenseUnivariatePolynomial, UnivariatePolynomialTrait};
 use ark_ff::PrimeField;
-use num_complex::Complex64;
 
-use crate::{
-    utils::{convert_prime_field_to_f64, fft},
-    DenseUnivariatePolynomial, UnivariatePolynomialTrait,
-};
+use super::domain::Domain;
 
+pub struct UnivariateEval<F: PrimeField> {
+    /// this is a list of the evaluation of the polynomial
+    pub values: Vec<F>,
+    /// This is the domian of the polynomal; very important for the FFT and IFFT
+    pub domain: Domain<F>,
+}
+
+impl<F: PrimeField> UnivariateEval<F> {
+    /// This function is used to create a new polynomial from the evaluation form
+    pub fn new(values: Vec<F>, domain: Domain<F>) -> Self {
+        UnivariateEval { values, domain }
+    }
+
+    /// This function is used to create a new polynomial from the evaluation form but also does checks
+    pub fn new_checked(values: Vec<F>, domain: Domain<F>) -> Result<Self, &'static str> {
+        if values.len() != domain.size() as usize {
+            return Err("The size of the values does not match the size of the domain");
+        }
+        Ok(UnivariateEval { values, domain })
+    }
+
+    /// This function performs interpolation on the vaules provided and returns a polynomial
+    pub fn interpolate(values: Vec<F>, domain: Domain<F>) -> DenseUnivariatePolynomial<F> {
+        let coeffs = domain.ifft(&values);
+        DenseUnivariatePolynomial::new(coeffs)
+    }
+
+    /// This function is used to convert the coefficient form of the polynomial to the evaluation form
+    pub fn from_coefficients(coefficients: Vec<F>) -> Self {
+        let mut coeffs = coefficients.clone();
+        let domain = Domain::<F>::new(coefficients.len() as usize);
+        let evals = domain.fft(&mut coeffs);
+
+        UnivariateEval {
+            values: evals,
+            domain,
+        }
+    }
+
+    /// This function is used to convert the evaluation form of the polynomial to the coefficient form
+    pub fn to_coefficients(&self) -> Vec<F> {
+        let evals = self.values.clone();
+        self.domain.ifft(&evals)
+    }
+
+    /// This function is used to convert the evaluation form of the polynomial to the coefficient form as a polynomial
+    pub fn to_coefficient_poly(&self) -> DenseUnivariatePolynomial<F> {
+        let coefficients = self.to_coefficients();
+        DenseUnivariatePolynomial::new(coefficients)
+    }
+
+    /// This function is used to multiply two polynomials in the evaluation form
+    pub fn multiply(
+        poly1: &DenseUnivariatePolynomial<F>,
+        poly2: &DenseUnivariatePolynomial<F>,
+    ) -> DenseUnivariatePolynomial<F> {
+        let mut poly1_coeffs = poly1.coefficients.clone();
+        let mut poly2_coeffs = poly2.coefficients.clone();
+
+        let length_of_poly_unscaled = poly1_coeffs.len() + poly2_coeffs.len() - 1;
+        let length_of_poly = if length_of_poly_unscaled.is_power_of_two() {
+            length_of_poly_unscaled
+        } else {
+            length_of_poly_unscaled.checked_next_power_of_two().unwrap()
+        };
+        let domain = Domain::<F>::new(length_of_poly);
+        poly1_coeffs.resize(length_of_poly, F::ZERO);
+        poly2_coeffs.resize(length_of_poly, F::ZERO);
+
+        let poly_1_eval = domain.fft(&poly1_coeffs);
+        let poly_2_eval = domain.fft(&poly2_coeffs);
+
+        let mut result = vec![F::ZERO; length_of_poly];
+        for i in 0..length_of_poly {
+            result[i] = poly_1_eval[i] * poly_2_eval[i];
+        }
+
+        let coeff = domain.ifft(&result);
+        DenseUnivariatePolynomial::new(coeff[..length_of_poly_unscaled].to_vec())
+    }
+}
+
+/*
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct Domain<F: PrimeField> {
     /// This is a const size of the domain
-    pub(crate) size: u64,
+    pub size: u64,
     /// This is the generator of the domain, ofter regarded as the root of unity (omega)
-    pub(crate) generator: F,
+    pub generator: F,
     /// This is the inverse of the group generator
-    pub(crate) group_gen_inverse: F,
+    pub group_gen_inverse: F,
     /// This is the inverse of the group size
-    pub(crate) group_size_inverse: F,
+    pub group_size_inverse: F,
 }
 
 #[derive(Debug, Clone)]
@@ -24,50 +104,37 @@ pub struct UnivariateEval<F: PrimeField> {
     pub domain: Domain<F>,
 }
 
-impl<F: PrimeField> Domain<F> {
-    pub fn new(num_of_coeffs: usize) -> Domain<F> {
-        let size = if num_of_coeffs.is_power_of_two() {
-            num_of_coeffs
-        } else {
-            num_of_coeffs.checked_next_power_of_two().unwrap()
-        } as u64;
-
-        let generator = F::get_root_of_unity(size).unwrap();
-        let group_gen_inverse = generator.inverse().unwrap();
-        let group_size_inverse = F::from(size).inverse().unwrap();
-
-        Domain {
-            size,
-            generator,
-            group_gen_inverse,
-            group_size_inverse,
-        }
-    }
-}
-
 impl<F: PrimeField> UnivariateEval<F> {
     pub fn new(values: Vec<F>, domain: Domain<F>) -> Self {
         UnivariateEval { values, domain }
     }
 
     pub fn to_coefficients(&self) -> Vec<F> {
-        let evals = self.values.clone();
-
-        let eval_in_complex_form: Vec<Complex64> = evals
-            .iter()
-            .map(|&x| Complex64::new(convert_prime_field_to_f64(x), 0.0))
-            .collect();
-
-        let inverse_fft = fft(&eval_in_complex_form, true);
-        inverse_fft
-            .iter()
-            .take(evals.len())
-            .map(|i| F::from(i.re.round() as u64))
-            .collect()
+        let mut evals = self.values.clone();
+        self.domain.compute_ifft(&mut evals)
     }
 
     pub fn to_coefficient_poly(&self) -> DenseUnivariatePolynomial<F> {
         let coefficients = self.to_coefficients();
         DenseUnivariatePolynomial::new(coefficients)
     }
+
+    /// This function is used to convert the coefficient form of the polynomial to the evaluation form
+    pub fn from_coefficients(coefficients: Vec<F>) -> Self {
+        let mut coeffs = coefficients.clone();
+        let domain = Domain::<F>::new(coefficients.len() as usize);
+        let evals = domain.compute_fft(&mut coeffs);
+
+        UnivariateEval {
+            values: evals,
+            domain,
+        }
+    }
+
+    /// This function performs interpolation on the vaules provided and returns a polynomial
+    pub fn interpolate(values: Vec<F>, domain: Domain<F>) -> DenseUnivariatePolynomial<F> {
+        let coeffs = domain.compute_ifft(&values);
+        DenseUnivariatePolynomial::new(coeffs)
+    }
 }
+*/

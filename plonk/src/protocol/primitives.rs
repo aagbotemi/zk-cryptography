@@ -46,9 +46,9 @@ pub struct WitnessPolys<F: PrimeField> {
 }
 
 pub struct PlonkProof<P: Pairing, F: PrimeField> {
-    pub a_s: P::G1,
-    pub b_s: P::G1,
-    pub c_s: P::G1,
+    pub as_commitment: P::G1,
+    pub bs_commitment: P::G1,
+    pub cs_commitment: P::G1,
     pub accumulator_commitment: P::G1,
     pub t_low: P::G1,
     pub t_mid: P::G1,

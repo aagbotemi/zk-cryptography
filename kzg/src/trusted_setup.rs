@@ -5,6 +5,7 @@ use std::fmt::{Debug, Formatter, Result};
 use crate::{interface::TrustedSetupInterface, utils::generate_array_of_points};
 use polynomial::utils::boolean_hypercube;
 
+#[derive(Clone)]
 pub struct TrustedSetup<P: Pairing> {
     pub powers_of_tau_in_g1: Vec<P::G1>,
     pub powers_of_tau_in_g2: Vec<P::G2>,

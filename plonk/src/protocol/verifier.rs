@@ -35,7 +35,11 @@ pub struct VerifierPreprocessedInput<P: Pairing> {
 }
 
 impl<P: Pairing> VerifierPreprocessedInput<P> {
-    fn vpi<F: PrimeField>(srs: &TrustedSetup<P>, cpi: &CommonPreprocessedInput<F>) -> Self {
+    pub fn vpi<F: PrimeField>(srs: &TrustedSetup<P>, cpi: &CommonPreprocessedInput<F>) -> Self {
+        // dbg!(&UnivariateKZG::commitment(
+        //     &cpi.q_m.to_coefficient_poly(),
+        //     srs
+        // ));
         Self {
             qm_commitment: UnivariateKZG::commitment(&cpi.q_m.to_coefficient_poly(), srs),
             ql_commitment: UnivariateKZG::commitment(&cpi.q_l.to_coefficient_poly(), srs),
@@ -80,10 +84,6 @@ impl<P: Pairing, F: PrimeField> PlonkVerifier<P, F> {
         let z_h_zeta = zeta.pow(&[group_order]) - F::one();
         let root_of_unity: F = root_of_unity(group_order);
 
-        // let mut l1_values = vec![F::one()];
-        // for _ in 0..group_order - 1 {
-        //     l1_values.push(F::zero());
-        // }
         let l1_poly = DenseUnivariatePolynomial::new(l1_values(group_order));
         let l1_zeta = l1_poly.evaluate(zeta);
 
@@ -115,36 +115,69 @@ impl<P: Pairing, F: PrimeField> PlonkVerifier<P, F> {
         let t_mid = self.proof.t_mid;
         let t_high = self.proof.t_high;
 
-        let d_1 = (qm.mul_bigint(&(a_s_zeta * b_s_zeta).into_bigint())
+        // let d_1 = (qm.mul_bigint(&(a_s_zeta * b_s_zeta).into_bigint())
+        //     + ql.mul_bigint(&a_s_zeta.into_bigint())
+        //     + qr.mul_bigint(&b_s_zeta.into_bigint())
+        //     + qo.mul_bigint(&c_s_zeta.into_bigint())
+        //     + qc)
+        //     + (acc.mul_bigint(
+        //         ((a_s_zeta + zeta * beta + gamma)
+        //             * (b_s_zeta + (F::from(2u8) * zeta * beta) + gamma)
+        //             * (c_s_zeta + (F::from(3u8) * zeta * beta) + gamma)
+        //             * alpha
+        //             + l1_zeta * alpha.pow(&[2u64])
+        //             + mu)
+        //             .into_bigint(),
+        //     ))
+        //     - (sigma3.mul_bigint(
+        //         ((a_s_zeta + sigma1_poly_zeta * beta + gamma)
+        //             * (b_s_zeta + sigma2_poly_zeta * beta + gamma)
+        //             * alpha
+        //             * beta
+        //             * w_accumulator_poly_zeta)
+        //             .into_bigint(),
+        //     ))
+        //     - ((t_low
+        //         + (t_mid.mul_bigint(zeta.pow(&[self.group_order]).into_bigint()))
+        //         + (t_high.mul_bigint(zeta.pow(&[2 * self.group_order]).into_bigint())))
+        //     .mul_bigint(z_h_zeta.into_bigint()));
+
+        let d_1_1 = qm.mul_bigint(&(a_s_zeta * b_s_zeta).into_bigint())
             + ql.mul_bigint(&a_s_zeta.into_bigint())
             + qr.mul_bigint(&b_s_zeta.into_bigint())
             + qo.mul_bigint(&c_s_zeta.into_bigint())
-            + qc)
-            + (acc.mul_bigint(
-                ((a_s_zeta + zeta * beta + gamma)
-                    * (b_s_zeta + (F::from(2u8) * zeta * beta) + gamma)
-                    * (c_s_zeta + (F::from(3u8) * zeta * beta) + gamma)
-                    * alpha
-                    + l1_zeta * alpha.pow(&[2u64])
-                    + mu)
-                    .into_bigint(),
-            ))
-            - (sigma3.mul_bigint(
-                ((a_s_zeta + sigma1_poly_zeta * beta + gamma)
-                    * (b_s_zeta + sigma2_poly_zeta * beta + gamma)
-                    * alpha
-                    * beta
-                    * w_accumulator_poly_zeta)
-                    .into_bigint(),
-            ))
-            - ((t_low
-                + (t_mid.mul_bigint(zeta.pow(&[self.group_order]).into_bigint()))
-                + (t_high.mul_bigint(zeta.pow(&[2 * self.group_order]).into_bigint())))
-            .mul_bigint(z_h_zeta.into_bigint()));
+            + qc;
 
-        let a_s = self.proof.a_s;
-        let b_s = self.proof.b_s;
-        let c_s = self.proof.c_s;
+        let d_1_2 = acc.mul_bigint(
+            ((a_s_zeta + zeta * beta + gamma)
+                * (b_s_zeta + (F::from(2u8) * zeta * beta) + gamma)
+                * (c_s_zeta + (F::from(3u8) * zeta * beta) + gamma)
+                * alpha
+                + l1_zeta * alpha.pow(&[2u64])
+                + mu)
+                .into_bigint(),
+        );
+
+        let d_1_3 = sigma3.mul_bigint(
+            ((a_s_zeta + sigma1_poly_zeta * beta + gamma)
+                * (b_s_zeta + sigma2_poly_zeta * beta + gamma)
+                * alpha
+                * beta
+                * w_accumulator_poly_zeta)
+                .into_bigint(),
+        );
+
+        let d_1_4 = (t_low
+            + (t_mid.mul_bigint(zeta.pow(&[self.group_order]).into_bigint()))
+            + (t_high.mul_bigint(zeta.pow(&[2 * self.group_order]).into_bigint())))
+        .mul_bigint(z_h_zeta.into_bigint());
+
+        let d_1 = d_1_1 + d_1_2 - d_1_3 - d_1_4;
+
+        let a_s = self.proof.as_commitment;
+        let b_s = self.proof.bs_commitment;
+        let c_s = self.proof.cs_commitment;
+        // dbg!(&a_s, &b_s, &c_s);
         let sigma1 = self.verifier_preprocessed_input.sigma1_commitment;
         let sigma2 = self.verifier_preprocessed_input.sigma2_commitment;
 
@@ -184,6 +217,9 @@ impl<P: Pairing, F: PrimeField> PlonkVerifier<P, F> {
                 .into(),
             P::G2::generator(),
         );
+
+        // dbg!(left);
+        // dbg!(right);
 
         left == right
     }

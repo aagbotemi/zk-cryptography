@@ -3,7 +3,7 @@ use super::{
     utils::{roots_of_unity, Cell, Column},
 };
 use ark_ff::PrimeField;
-use polynomial::univariate::evaluation::{Domain, UnivariateEval};
+use polynomial::univariate::{domain::Domain, evaluation::UnivariateEval};
 use std::collections::HashMap;
 
 impl<F: PrimeField> Program<F> {
@@ -26,8 +26,6 @@ impl<F: PrimeField> Program<F> {
             sigma_1,
             sigma_2,
             sigma_3,
-            s1_coeff: None,
-            s2_coeff: None,
         }
     }
 
@@ -153,6 +151,7 @@ impl<F: PrimeField> Program<F> {
         let coeffs = self.coeffs();
         let mut out = Vec::new();
         let mut no_more_allowed = false;
+
         for coeff in coeffs.iter() {
             if coeff.get(&Some("$public".to_string())) != None {
                 if no_more_allowed {
@@ -276,10 +275,10 @@ mod test {
         }
         let program = Program::new(assembly_eqns, 8);
         let (l, r, m, o, c) = program.make_gate_polynomials();
-        println!("l:{:?}", l);
-        println!("r:{:?}", r);
-        println!("m:{:?}", m);
-        println!("o:{:?}", o);
-        println!("c:{:?}", c);
+        // println!("l:{:?}", l);
+        // println!("r:{:?}", r);
+        // println!("m:{:?}", m);
+        // println!("o:{:?}", o);
+        // println!("c:{:?}", c);
     }
 }
