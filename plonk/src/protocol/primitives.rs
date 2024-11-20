@@ -29,7 +29,8 @@ pub struct WitnessPolys<F: PrimeField> {
     pub c_s: DenseUnivariatePolynomial<F>,
     pub zh_poly: DenseUnivariatePolynomial<F>,
 
-    pub zh_accumulator_poly: DenseUnivariatePolynomial<F>,
+    pub w_accumulator_poly: DenseUnivariatePolynomial<F>,
+    pub accumulator_poly: DenseUnivariatePolynomial<F>,
     pub t_low_poly: DenseUnivariatePolynomial<F>,
     pub t_mid_poly: DenseUnivariatePolynomial<F>,
     pub t_high_poly: DenseUnivariatePolynomial<F>,
@@ -89,7 +90,8 @@ impl<F: PrimeField> Default for WitnessPolys<F> {
             c_s: DenseUnivariatePolynomial::zero(),
             zh_poly: DenseUnivariatePolynomial::zero(),
 
-            zh_accumulator_poly: DenseUnivariatePolynomial::zero(),
+            w_accumulator_poly: DenseUnivariatePolynomial::zero(),
+            accumulator_poly: DenseUnivariatePolynomial::zero(),
             t_low_poly: DenseUnivariatePolynomial::zero(),
             t_mid_poly: DenseUnivariatePolynomial::zero(),
             t_high_poly: DenseUnivariatePolynomial::zero(),

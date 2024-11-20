@@ -47,8 +47,8 @@ pub fn zh_values<F: PrimeField>(group_order: usize) -> Vec<F> {
     zh_values
 }
 
-pub fn l1_values<F: PrimeField>(group_order: u64) -> Vec<F> {
-    let mut l1_values = vec![F::ZERO; group_order as usize];
+pub fn l1_values<F: PrimeField>(group_order: usize) -> Vec<F> {
+    let mut l1_values = vec![F::ZERO; group_order];
     l1_values[0] = F::ONE;
     l1_values
 }

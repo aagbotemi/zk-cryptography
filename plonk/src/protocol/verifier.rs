@@ -1,12 +1,13 @@
 use std::marker::PhantomData;
 
-use ark_ec::{pairing::Pairing, AffineRepr, Group};
+use ark_ec::{pairing::Pairing, Group};
 use ark_ff::PrimeField;
 use kzg::{
     interface::UnivariateKZGInterface, trusted_setup::TrustedSetup, univariate_kzg::UnivariateKZG,
 };
 use polynomial::{
-    univariate::evaluation::UnivariateEval, DenseUnivariatePolynomial, UnivariatePolynomialTrait,
+    univariate::{domain::Domain, evaluation::UnivariateEval},
+    UnivariatePolynomialTrait,
 };
 
 use crate::{
@@ -14,12 +15,7 @@ use crate::{
     protocol::utils::compute_verifier_challenges,
 };
 
-use super::{
-    primitives::{PlonkProof, PlonkRoundTranscript},
-    utils::l1_values,
-};
-
-pub struct Verifier {}
+use super::{primitives::PlonkProof, utils::l1_values};
 
 /// This is the verier preprocessed input
 pub struct VerifierPreprocessedInput<P: Pairing> {
@@ -36,10 +32,6 @@ pub struct VerifierPreprocessedInput<P: Pairing> {
 
 impl<P: Pairing> VerifierPreprocessedInput<P> {
     pub fn vpi<F: PrimeField>(srs: &TrustedSetup<P>, cpi: &CommonPreprocessedInput<F>) -> Self {
-        // dbg!(&UnivariateKZG::commitment(
-        //     &cpi.q_m.to_coefficient_poly(),
-        //     srs
-        // ));
         Self {
             qm_commitment: UnivariateKZG::commitment(&cpi.q_m.to_coefficient_poly(), srs),
             ql_commitment: UnivariateKZG::commitment(&cpi.q_l.to_coefficient_poly(), srs),
@@ -84,8 +76,9 @@ impl<P: Pairing, F: PrimeField> PlonkVerifier<P, F> {
         let z_h_zeta = zeta.pow(&[group_order]) - F::one();
         let root_of_unity: F = root_of_unity(group_order);
 
-        let l1_poly = DenseUnivariatePolynomial::new(l1_values(group_order));
-        let l1_zeta = l1_poly.evaluate(zeta);
+        let domain = Domain::new(self.group_order as usize);
+        let l1_poly = UnivariateEval::new(l1_values(group_order as usize), domain);
+        let l1_zeta = l1_poly.to_coefficient_poly().evaluate(zeta);
 
         let public_input_poly_at_zeta = public_input_poly.to_coefficient_poly().evaluate(zeta);
 
@@ -115,69 +108,36 @@ impl<P: Pairing, F: PrimeField> PlonkVerifier<P, F> {
         let t_mid = self.proof.t_mid;
         let t_high = self.proof.t_high;
 
-        // let d_1 = (qm.mul_bigint(&(a_s_zeta * b_s_zeta).into_bigint())
-        //     + ql.mul_bigint(&a_s_zeta.into_bigint())
-        //     + qr.mul_bigint(&b_s_zeta.into_bigint())
-        //     + qo.mul_bigint(&c_s_zeta.into_bigint())
-        //     + qc)
-        //     + (acc.mul_bigint(
-        //         ((a_s_zeta + zeta * beta + gamma)
-        //             * (b_s_zeta + (F::from(2u8) * zeta * beta) + gamma)
-        //             * (c_s_zeta + (F::from(3u8) * zeta * beta) + gamma)
-        //             * alpha
-        //             + l1_zeta * alpha.pow(&[2u64])
-        //             + mu)
-        //             .into_bigint(),
-        //     ))
-        //     - (sigma3.mul_bigint(
-        //         ((a_s_zeta + sigma1_poly_zeta * beta + gamma)
-        //             * (b_s_zeta + sigma2_poly_zeta * beta + gamma)
-        //             * alpha
-        //             * beta
-        //             * w_accumulator_poly_zeta)
-        //             .into_bigint(),
-        //     ))
-        //     - ((t_low
-        //         + (t_mid.mul_bigint(zeta.pow(&[self.group_order]).into_bigint()))
-        //         + (t_high.mul_bigint(zeta.pow(&[2 * self.group_order]).into_bigint())))
-        //     .mul_bigint(z_h_zeta.into_bigint()));
-
-        let d_1_1 = qm.mul_bigint(&(a_s_zeta * b_s_zeta).into_bigint())
+        let d_1 = (qm.mul_bigint(&(a_s_zeta * b_s_zeta).into_bigint())
             + ql.mul_bigint(&a_s_zeta.into_bigint())
             + qr.mul_bigint(&b_s_zeta.into_bigint())
             + qo.mul_bigint(&c_s_zeta.into_bigint())
-            + qc;
-
-        let d_1_2 = acc.mul_bigint(
-            ((a_s_zeta + zeta * beta + gamma)
-                * (b_s_zeta + (F::from(2u8) * zeta * beta) + gamma)
-                * (c_s_zeta + (F::from(3u8) * zeta * beta) + gamma)
-                * alpha
-                + l1_zeta * alpha.pow(&[2u64])
-                + mu)
-                .into_bigint(),
-        );
-
-        let d_1_3 = sigma3.mul_bigint(
-            ((a_s_zeta + sigma1_poly_zeta * beta + gamma)
-                * (b_s_zeta + sigma2_poly_zeta * beta + gamma)
-                * alpha
-                * beta
-                * w_accumulator_poly_zeta)
-                .into_bigint(),
-        );
-
-        let d_1_4 = (t_low
-            + (t_mid.mul_bigint(zeta.pow(&[self.group_order]).into_bigint()))
-            + (t_high.mul_bigint(zeta.pow(&[2 * self.group_order]).into_bigint())))
-        .mul_bigint(z_h_zeta.into_bigint());
-
-        let d_1 = d_1_1 + d_1_2 - d_1_3 - d_1_4;
+            + qc)
+            + (acc.mul_bigint(
+                ((a_s_zeta + zeta * beta + gamma)
+                    * (b_s_zeta + (F::from(2u8) * zeta * beta) + gamma)
+                    * (c_s_zeta + (F::from(3u8) * zeta * beta) + gamma)
+                    * alpha
+                    + l1_zeta * alpha.pow(&[2u64])
+                    + mu)
+                    .into_bigint(),
+            ))
+            - (sigma3.mul_bigint(
+                ((a_s_zeta + sigma1_poly_zeta * beta + gamma)
+                    * (b_s_zeta + sigma2_poly_zeta * beta + gamma)
+                    * alpha
+                    * beta
+                    * w_accumulator_poly_zeta)
+                    .into_bigint(),
+            ))
+            - ((t_low
+                + (t_mid.mul_bigint(zeta.pow(&[self.group_order]).into_bigint()))
+                + (t_high.mul_bigint(zeta.pow(&[2 * self.group_order]).into_bigint())))
+            .mul_bigint(z_h_zeta.into_bigint()));
 
         let a_s = self.proof.as_commitment;
         let b_s = self.proof.bs_commitment;
         let c_s = self.proof.cs_commitment;
-        // dbg!(&a_s, &b_s, &c_s);
         let sigma1 = self.verifier_preprocessed_input.sigma1_commitment;
         let sigma2 = self.verifier_preprocessed_input.sigma2_commitment;
 
@@ -218,9 +178,6 @@ impl<P: Pairing, F: PrimeField> PlonkVerifier<P, F> {
             P::G2::generator(),
         );
 
-        // dbg!(left);
-        // dbg!(right);
-
         left == right
     }
 }
@@ -231,17 +188,12 @@ mod tests {
 
     use crate::{
         compiler::primitives::{AssemblyEqn, Program},
-        protocol::primitives::PlonkProver,
+        protocol::primitives::{PlonkProver, PlonkRoundTranscript},
     };
 
     use super::*;
-    // use crate::{interface::PlonkProverInterface, prover::PlonkProver};
     use ark_test_curves::bls12_381::{Bls12_381, Fr};
     use kzg::{interface::UnivariateKZGInterface, univariate_kzg::UnivariateKZG};
-    // use fiat_shamir::FiatShamirTranscript;
-    // use kzg_rust::{interface::KZGUnivariateInterface, univariate::UnivariateKZG};
-    // use plonk_compiler::{assembly::eq_to_assembly, program::Program};
-    // use std::collections::HashMap;
 
     #[test]
     fn test_plonk_complete_prove_n_verify() {
@@ -256,7 +208,51 @@ mod tests {
         let mut variable_assignment = HashMap::new();
         variable_assignment.insert(Some("e".to_string()), Fr::from(3));
 
-        let witness = program.compute_witness(variable_assignment);
+        let witness = program.compute_witness_and_public_poly(variable_assignment);
+        let preprocessed_input = program.common_preprocessed_input();
+
+        let transcript = PlonkRoundTranscript::new();
+        let srs: TrustedSetup<Bls12_381> =
+            UnivariateKZG::generate_srs(&Fr::from(6), &(program.group_order as usize * 4));
+        let verifier_preprocessed_input = VerifierPreprocessedInput::vpi(&srs, &preprocessed_input);
+        // dbg!(&verifier_preprocessed_input);
+        let mut prover = PlonkProver::new(preprocessed_input, srs.clone(), transcript);
+        let proof = prover.prove(&witness);
+        let verifer = PlonkVerifier::new(
+            program.group_order,
+            proof,
+            srs.clone(),
+            verifier_preprocessed_input,
+        );
+        let is_valid = verifer.verify(witness.public_poly);
+        assert_eq!(is_valid, true);
+    }
+
+    #[test]
+    fn test_plonk_complete_prove_n_verify_1() {
+        let original_constriants = [
+            "x public",
+            "c <== a * b",
+            "f <== d * e",
+            "g <== c + f",
+            "x <== g * y",
+        ];
+        let mut assembly_eqns = Vec::new();
+        for eq in original_constriants.iter() {
+            let assembly_eqn = AssemblyEqn::eq_to_assembly(eq);
+            assembly_eqns.push(assembly_eqn);
+        }
+        let program = Program::new(assembly_eqns, 8);
+
+        let mut variable_assignment = HashMap::new();
+        variable_assignment.insert(Some("x".to_string()), Fr::from(258));
+        variable_assignment.insert(Some("a".to_string()), Fr::from(2));
+        variable_assignment.insert(Some("b".to_string()), Fr::from(4));
+        variable_assignment.insert(Some("d".to_string()), Fr::from(5));
+        variable_assignment.insert(Some("e".to_string()), Fr::from(7));
+        variable_assignment.insert(Some("y".to_string()), Fr::from(6));
+
+        let witness = program.compute_witness_and_public_poly(variable_assignment);
         let preprocessed_input = program.common_preprocessed_input();
 
         let transcript = PlonkRoundTranscript::new();
@@ -274,41 +270,4 @@ mod tests {
         let is_valid = verifer.verify(witness.public_poly);
         assert_eq!(is_valid, true);
     }
-
-    // #[test]
-    // fn test_plonk_complete_prove_n_verify_1() {
-    //     let original_constriants = [
-    //         "x public",
-    //         "c <== a * b",
-    //         "f <== d * e",
-    //         "g <== c + f",
-    //         "x <== g * y",
-    //     ];
-    //     let mut assembly_eqns = Vec::new();
-    //     for eq in original_constriants.iter() {
-    //         let assembly_eqn = eq_to_assembly::<Fr>(eq.to_string());
-    //         assembly_eqns.push(assembly_eqn);
-    //     }
-    //     let program = Program::new(assembly_eqns, 8);
-
-    //     let mut variable_assignment = HashMap::new();
-    //     variable_assignment.insert(Some("x".to_string()), Fr::from(258));
-    //     variable_assignment.insert(Some("a".to_string()), Fr::from(2));
-    //     variable_assignment.insert(Some("b".to_string()), Fr::from(4));
-    //     variable_assignment.insert(Some("d".to_string()), Fr::from(5));
-    //     variable_assignment.insert(Some("e".to_string()), Fr::from(7));
-    //     variable_assignment.insert(Some("y".to_string()), Fr::from(6));
-
-    //     let witness = program.compute_witness_and_public_parameter(variable_assignment);
-    //     let circuit_ir = program.common_preproccessed_input();
-
-    //     let transcript = FiatShamirTranscript::new("plonk-protocol".as_bytes().to_vec());
-    //     let srs: SRS<Bls12_381> =
-    //         UnivariateKZG::generate_srs(&Fr::from(6), &program.group_order as usize * 4);
-    //     let mut prover = PlonkProver::new(transcript, circuit_ir.clone(), srs.clone());
-    //     let proof = prover.prove(&witness);
-    //     let verifer = PlonkVerifier::new(program.group_order, circuit_ir.clone(), srs);
-    //     let is_valid = verifer.verify(&proof, witness.pi);
-    //     assert_eq!(is_valid, true);
-    // }
 }

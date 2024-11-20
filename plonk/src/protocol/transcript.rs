@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use ark_ec::pairing::Pairing;
 use ark_ff::PrimeField;
 use merlin::MerlinTranscript;
-use polynomial::DenseUnivariatePolynomial;
 
 use super::primitives::PlonkRoundTranscript;
 
@@ -62,18 +61,6 @@ impl<P: Pairing> PlonkRoundTranscript<P> {
             .append_point::<P>(b"fifth_round", &w_zeta_commitment);
         self.transcript
             .append_point::<P>(b"fifth_round", &w_zeta_omega_commitment);
-    }
-
-    pub fn challenge_n_round<F: PrimeField>(&mut self, label: &[u8], n: usize) -> Vec<F> {
-        // self.transcript.challenge_n::<F>(label, n)
-        let mut tt = vec![F::ZERO; n];
-        let xx = self.transcript.challenge::<F>(b"beta");
-        tt[0] = xx;
-        dbg!(&xx);
-        let yy = self.transcript.challenge::<F>(b"gamma");
-        tt[0] = yy;
-        dbg!(&yy);
-        tt
     }
 
     pub fn challenge_round<F: PrimeField>(&mut self, label: &[u8]) -> F {

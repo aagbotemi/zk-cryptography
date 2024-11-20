@@ -1,6 +1,6 @@
 use super::{
     primitives::{AssemblyEqn, CommonPreprocessedInput, GateWire, Program, Witness},
-    utils::{roots_of_unity, Cell, Column},
+    utils::{get_product_key, roots_of_unity, Cell, Column},
 };
 use ark_ff::PrimeField;
 use polynomial::univariate::{domain::Domain, evaluation::UnivariateEval};
@@ -172,54 +172,150 @@ impl<F: PrimeField> Program<F> {
         out
     }
 
-    pub fn compute_witness(&self, witness: HashMap<Option<String>, F>) -> Witness<F> {
-        let mut a_values = vec![F::from(0u8); self.group_order as usize];
-        let mut b_values = vec![F::from(0u8); self.group_order as usize];
-        let mut c_values = vec![F::from(0u8); self.group_order as usize];
+    pub fn compute_witness(
+        &self,
+        starting_assignments: HashMap<Option<String>, F>,
+    ) -> HashMap<Option<String>, F> {
+        let mut out: HashMap<Option<String>, F> = starting_assignments.clone();
+        out.insert(None, F::ZERO);
 
-        let public_variables: Vec<_> = self
+        for constraint in self.constraints.iter() {
+            let wires = constraint.wires.clone();
+            let coeffs = constraint.coeffs.clone();
+
+            let in_L = wires.left_wire;
+            let in_R = wires.right_wire;
+            let output = wires.output_wire;
+            let default_f_one = F::from(1u32);
+            let out_coeff = coeffs
+                .get(&Some("$output_coeff".to_string()))
+                .unwrap_or(&default_f_one);
+            let product_key = get_product_key(in_L.clone(), in_R.clone());
+
+            if output.is_some() && (*out_coeff == F::ONE.neg() || *out_coeff == F::ONE) {
+                let new_value = F::from(
+                    *coeffs.get(&Some("".to_string())).unwrap_or(&F::ZERO)
+                        + *out.get(&in_L).unwrap() * *coeffs.get(&in_L).unwrap_or(&F::ZERO)
+                        + *out.get(&in_R).unwrap()
+                            * *coeffs.get(&in_R).unwrap_or(&F::ZERO)
+                            * if in_R != in_L { F::ONE } else { F::ZERO }
+                        + *out.get(&in_L).unwrap()
+                            * *out.get(&in_R).unwrap()
+                            * coeffs.get(&product_key).unwrap_or(&F::ZERO),
+                ) * out_coeff;
+
+                if out.get(&output).is_some() {
+                    if out.get(&output).unwrap() != &new_value {
+                        panic!("Inconsistent assignment for variable {:?}", output);
+                    }
+                } else {
+                    out.insert(output.clone(), new_value);
+                }
+            }
+        }
+
+        out
+    }
+
+    pub fn compute_witness_and_public_poly(
+        &self,
+        starting_assignments: HashMap<Option<String>, F>,
+    ) -> Witness<F> {
+        let out = self.compute_witness(starting_assignments);
+        let mut public_params_values: Vec<F> = self
             .get_public_assignment()
             .iter()
-            .map(|x| x.clone().unwrap())
+            .map(|x| out.get(x).unwrap().clone().neg())
             .collect();
-
-        let mut values: Vec<_> = public_variables
-            .iter()
-            .map(|x| witness.get(&Some(x.to_string())).unwrap().neg())
-            .collect();
-
-        values.resize(
-            self.group_order as usize - public_variables.len(),
-            F::zero(),
+        public_params_values.resize(self.group_order as usize, F::ZERO);
+        let public_params_poly = UnivariateEval::new(
+            public_params_values,
+            Domain::<F>::new(self.group_order as usize),
         );
+
+        let mut witness_a = vec![F::ZERO; self.group_order as usize];
+        let mut witness_b = vec![F::ZERO; self.group_order as usize];
+        let mut witness_c = vec![F::ZERO; self.group_order as usize];
 
         for (i, constraint) in self.constraints.iter().enumerate() {
             let l = constraint.wires.left_wire.clone();
-            a_values[i] = match l {
-                Some(v) => *witness.get(&Some(v)).unwrap(),
-                None => F::zero(),
+            witness_a[i] = match l {
+                Some(l) => *out.get(&Some(l)).unwrap(),
+                None => F::ZERO,
             };
 
             let r = constraint.wires.right_wire.clone();
-            b_values[i] = match r {
-                Some(v) => *witness.get(&Some(v)).unwrap(),
-                None => F::zero(),
+            witness_b[i] = match r {
+                Some(r) => *out.get(&Some(r)).unwrap(),
+                None => F::ZERO,
             };
 
             let o = constraint.wires.output_wire.clone();
-            c_values[i] = match o {
-                Some(v) => *witness.get(&Some(v)).unwrap(),
-                None => F::zero(),
+            witness_c[i] = match o {
+                Some(o) => *out.get(&Some(o)).unwrap(),
+                None => F::ZERO,
             };
         }
 
         Witness {
-            a: UnivariateEval::new(a_values, Domain::new(self.group_order as usize)),
-            b: UnivariateEval::new(b_values, Domain::new(self.group_order as usize)),
-            c: UnivariateEval::new(c_values, Domain::new(self.group_order as usize)),
-            public_poly: UnivariateEval::new(values, Domain::new(self.group_order as usize)),
+            a: UnivariateEval::new(witness_a, Domain::<F>::new(self.group_order as usize)),
+            b: UnivariateEval::new(witness_b, Domain::<F>::new(self.group_order as usize)),
+            c: UnivariateEval::new(witness_c, Domain::<F>::new(self.group_order as usize)),
+            public_poly: public_params_poly,
         }
     }
+    // pub fn compute_witness(&self, witness: HashMap<Option<String>, F>) -> Witness<F> {
+    //     let mut a_values = vec![F::from(0u8); self.group_order as usize];
+    //     let mut b_values = vec![F::from(0u8); self.group_order as usize];
+    //     let mut c_values = vec![F::from(0u8); self.group_order as usize];
+
+    //     let public_variables: Vec<_> = self
+    //         .get_public_assignment()
+    //         .iter()
+    //         .map(|x| x.clone().unwrap())
+    //         .collect();
+
+    //     let mut values: Vec<_> = public_variables
+    //         .iter()
+    //         .map(|x| witness.get(&Some(x.to_string())).unwrap().neg())
+    //         .collect();
+
+    //     values.resize(
+    //         self.group_order as usize - public_variables.len(),
+    //         F::zero(),
+    //     );
+
+    //     for (i, constraint) in self.constraints.iter().enumerate() {
+    //         let l = constraint.wires.left_wire.clone();
+    //         a_values[i] = match l {
+    //             Some(v) => *witness.get(&Some(v)).unwrap(),
+    //             None => F::zero(),
+    //         };
+
+    //         let r = constraint.wires.right_wire.clone();
+    //         b_values[i] = match r {
+    //             Some(v) => *witness.get(&Some(v)).unwrap(),
+    //             None => F::zero(),
+    //         };
+
+    //         let o = constraint.wires.output_wire.clone();
+    //         c_values[i] = match o {
+    //             Some(v) => *witness.get(&Some(v)).unwrap(),
+    //             None => F::zero(),
+    //         };
+    //     }
+
+    //     dbg!(&a_values);
+    //     dbg!(&b_values);
+    //     dbg!(&c_values);
+
+    //     Witness {
+    //         a: UnivariateEval::new(a_values, Domain::new(self.group_order as usize)),
+    //         b: UnivariateEval::new(b_values, Domain::new(self.group_order as usize)),
+    //         c: UnivariateEval::new(c_values, Domain::new(self.group_order as usize)),
+    //         public_poly: UnivariateEval::new(values, Domain::new(self.group_order as usize)),
+    //     }
+    // }
 }
 
 #[cfg(test)]
@@ -261,9 +357,9 @@ mod test {
 
         assert_eq!(s2.values[0], unmoved_s3[1]);
 
-        // println!("s1:{:?}", s1);
-        // println!("s2:{:?}", s2);
-        // println!("s3:{:?}", s3);
+        // // println!("s1:{:?}", s1);
+        // // println!("s2:{:?}", s2);
+        // // println!("s3:{:?}", s3);
     }
     #[test]
     fn test_make_gate_polynomials() {
@@ -275,10 +371,10 @@ mod test {
         }
         let program = Program::new(assembly_eqns, 8);
         let (l, r, m, o, c) = program.make_gate_polynomials();
-        // println!("l:{:?}", l);
-        // println!("r:{:?}", r);
-        // println!("m:{:?}", m);
-        // println!("o:{:?}", o);
-        // println!("c:{:?}", c);
+        // // println!("l:{:?}", l);
+        // // println!("r:{:?}", r);
+        // // println!("m:{:?}", m);
+        // // println!("o:{:?}", o);
+        // // println!("c:{:?}", c);
     }
 }
