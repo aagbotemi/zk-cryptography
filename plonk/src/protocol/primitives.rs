@@ -69,6 +69,20 @@ pub struct PlonkRoundTranscript<P: Pairing> {
     pub _marker: PhantomData<P>,
 }
 
+/// This is the verier preprocessed input
+#[derive(Clone)]
+pub struct VerifierPreprocessedInput<P: Pairing> {
+    pub qm_commitment: P::G1,
+    pub ql_commitment: P::G1,
+    pub qr_commitment: P::G1,
+    pub qo_commitment: P::G1,
+    pub qc_commitment: P::G1,
+    pub sigma1_commitment: P::G1,
+    pub sigma2_commitment: P::G1,
+    pub sigma3_commitment: P::G1,
+    pub x_2: P::G2,
+}
+
 impl<F: PrimeField> Default for RandomNumbers<F> {
     fn default() -> Self {
         Self {

@@ -11,3 +11,10 @@ ark-ec.workspace = true
 rand.workspace = true
 kzg.workspace = true
 ark-test-curves.workspace = true
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "plonk_benchmark"
+harness = false
