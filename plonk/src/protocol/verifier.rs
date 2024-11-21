@@ -15,20 +15,10 @@ use crate::{
     protocol::utils::compute_verifier_challenges,
 };
 
-use super::{primitives::PlonkProof, utils::l1_values};
-
-/// This is the verier preprocessed input
-pub struct VerifierPreprocessedInput<P: Pairing> {
-    pub qm_commitment: P::G1,
-    pub ql_commitment: P::G1,
-    pub qr_commitment: P::G1,
-    pub qo_commitment: P::G1,
-    pub qc_commitment: P::G1,
-    pub sigma1_commitment: P::G1,
-    pub sigma2_commitment: P::G1,
-    pub sigma3_commitment: P::G1,
-    pub x_2: P::G2,
-}
+use super::{
+    primitives::{PlonkProof, VerifierPreprocessedInput},
+    utils::l1_values,
+};
 
 impl<P: Pairing> VerifierPreprocessedInput<P> {
     pub fn vpi<F: PrimeField>(srs: &TrustedSetup<P>, cpi: &CommonPreprocessedInput<F>) -> Self {
