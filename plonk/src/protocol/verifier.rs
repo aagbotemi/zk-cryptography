@@ -15,7 +15,10 @@ use crate::{
     protocol::utils::compute_verifier_challenges,
 };
 
-use super::{primitives::{PlonkProof, VerifierPreprocessedInput}, utils::l1_values};
+use super::{
+    primitives::{PlonkProof, VerifierPreprocessedInput},
+    utils::l1_values,
+};
 
 impl<P: Pairing> VerifierPreprocessedInput<P> {
     pub fn vpi<F: PrimeField>(srs: &TrustedSetup<P>, cpi: &CommonPreprocessedInput<F>) -> Self {
